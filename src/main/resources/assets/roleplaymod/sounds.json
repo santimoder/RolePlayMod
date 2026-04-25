@@ -1,0 +1,14 @@
+{
+  "radio_ptt_start": {
+    "subtitle": "Radio PTT start",
+    "sounds": [
+      "roleplaymod:radio_ptt_start"
+    ]
+  },
+  "radio_ptt_end": {
+    "subtitle": "Radio PTT end",
+    "sounds": [
+      "roleplaymod:radio_ptt_end"
+    ]
+  }
+}

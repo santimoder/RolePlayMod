@@ -1,0 +1,9 @@
+{
+  "key.roleplaymod.body_status": "Open Body Status",
+  "key.categories.roleplaymod": "Roleplay Mod",
+  "key.categories.roleplaymod.radio": "Roleplay Mod - Radio",
+  "key.roleplaymod.toggle_radio": "Encender/Apagar radio",
+  "key.roleplaymod.radio_frequency_up": "Subir frecuencia de radio",
+  "key.roleplaymod.radio_frequency_down": "Bajar frecuencia de radio",
+  "key.roleplaymod.radio_ptt": "Transmitir por radio"
+}

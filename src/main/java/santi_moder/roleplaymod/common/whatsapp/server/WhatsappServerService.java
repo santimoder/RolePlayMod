@@ -1,0 +1,677 @@
+package santi_moder.roleplaymod.common.whatsapp.server;
+
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.PacketDistributor;
+import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappChat;
+import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappContact;
+import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappMessage;
+import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappMessageStatus;
+import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappPresence;
+import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappProfile;
+import santi_moder.roleplaymod.common.whatsapp.sync.*;
+import santi_moder.roleplaymod.network.ModNetwork;
+import santi_moder.roleplaymod.network.phone.whatsapp.WhatsappChatClearedS2CPacket;
+import santi_moder.roleplaymod.network.phone.whatsapp.WhatsappContactUpdatedS2CPacket;
+import santi_moder.roleplaymod.network.phone.whatsapp.WhatsappMessageAddedS2CPacket;
+import santi_moder.roleplaymod.network.phone.whatsapp.WhatsappMessageStatusUpdatedS2CPacket;
+import santi_moder.roleplaymod.network.phone.whatsapp.WhatsappPresenceUpdatedS2CPacket;
+
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public final class WhatsappServerService {
+
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
+    private WhatsappServerService() {
+    }
+
+    public static WhatsappInitialStateSnapshot buildInitialSnapshot(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID playerUuid = player.getUUID();
+        String fallbackName = player.getGameProfile().getName();
+
+        data.getOrCreateAccount(playerUuid, fallbackName);
+        WhatsappProfile profile = data.getOrCreateProfile(playerUuid, fallbackName);
+
+        syncOwnedPresences(player);
+
+        List<WhatsappContact> contacts = data.getOrCreateContacts(playerUuid);
+        List<WhatsappChat> chats = data.getOrCreateChats(playerUuid);
+        List<WhatsappPresence> presences = data.getOrCreatePresences(playerUuid);
+
+        List<WhatsappSyncContact> syncContacts = new ArrayList<>();
+        for (WhatsappContact contact : contacts) {
+            syncContacts.add(new WhatsappSyncContact(
+                    contact.id(),
+                    contact.displayName(),
+                    contact.phoneNumber(),
+                    contact.photoId(),
+                    contact.about(),
+                    contact.blocked(),
+                    contact.commonGroupsCount(),
+                    contact.mediaCount()
+            ));
+        }
+
+        List<WhatsappSyncChat> syncChats = new ArrayList<>();
+        for (WhatsappChat chat : chats) {
+            List<WhatsappSyncMessage> syncMessages = new ArrayList<>();
+
+            for (WhatsappMessage message : chat.messages()) {
+                syncMessages.add(new WhatsappSyncMessage(
+                        message.id(),
+                        message.text(),
+                        message.sentByMe(),
+                        message.timeText(),
+                        message.sortTimestamp(),
+                        message.status(),
+                        message.lastStatusUpdateAt()
+                ));
+            }
+
+            syncChats.add(new WhatsappSyncChat(
+                    chat.id(),
+                    chat.contactId(),
+                    chat.pinned(),
+                    chat.unreadCount(),
+                    syncMessages
+            ));
+        }
+
+        List<WhatsappSyncPresence> syncPresences = new ArrayList<>();
+        for (WhatsappPresence presence : presences) {
+            syncPresences.add(new WhatsappSyncPresence(
+                    presence.contactId(),
+                    presence.onlineInServer(),
+                    presence.hasInternet(),
+                    presence.hasBattery(),
+                    presence.lastSeenTimestamp()
+            ));
+        }
+
+        WhatsappSyncProfile syncProfile = new WhatsappSyncProfile(
+                profile.photoId(),
+                profile.about(),
+                profile.displayName(),
+                profile.phoneNumber()
+        );
+
+        return new WhatsappInitialStateSnapshot(
+                syncChats,
+                syncContacts,
+                syncPresences,
+                syncProfile,
+                WhatsappPresenceResolver.isPlayerOnlineInServer(player),
+                WhatsappPresenceResolver.hasInternet(player),
+                WhatsappPresenceResolver.hasBattery(player)
+        );
+    }
+
+    public static void handleSendMessage(ServerPlayer senderPlayer, String contactId, String text) {
+        if (senderPlayer == null || text == null || text.isBlank()) {
+            return;
+        }
+
+        ServerLevel level = senderPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID senderUuid = senderPlayer.getUUID();
+        String senderFallbackName = senderPlayer.getGameProfile().getName();
+
+        data.getOrCreateAccount(senderUuid, senderFallbackName);
+        data.getOrCreateProfile(senderUuid, senderFallbackName);
+        syncOwnedPresences(senderPlayer);
+
+        WhatsappContact senderContact = data.findContactForOwner(senderUuid, contactId);
+        if (senderContact == null || senderContact.blocked()) {
+            return;
+        }
+
+        WhatsappChat senderChat = data.findChatByContactId(senderUuid, contactId);
+        if (senderChat == null) {
+            senderChat = data.createChat(senderUuid, contactId);
+        }
+
+        long now = System.currentTimeMillis();
+        String timeText = LocalTime.now().format(TIME_FORMATTER);
+
+        WhatsappMessage senderMessage = WhatsappMessage.of(
+                text.trim(),
+                true,
+                timeText,
+                now,
+                WhatsappMessageStatus.SENT,
+                now
+        );
+
+        senderChat.addMessage(senderMessage);
+        senderChat.clearUnreadCount();
+        data.sortChats(senderUuid);
+
+        WhatsappAccount targetAccount = data.findAccountByPhone(senderContact.phoneNumber());
+
+        if (targetAccount != null) {
+            UUID targetUuid = targetAccount.playerUuid();
+
+            data.getOrCreateAccount(targetUuid, targetAccount.displayName());
+            data.getOrCreateProfile(targetUuid, targetAccount.displayName());
+
+            WhatsappAccount senderAccount = data.findAccountByPlayer(senderUuid);
+            if (senderAccount != null) {
+                WhatsappContact reverseContact = findOrCreateMirrorContact(
+                        data,
+                        targetUuid,
+                        senderAccount.displayName(),
+                        senderAccount.phoneNumber()
+                );
+
+                WhatsappChat targetChat = data.findChatByContactId(targetUuid, reverseContact.id());
+                if (targetChat == null) {
+                    targetChat = data.createChat(targetUuid, reverseContact.id());
+                }
+
+                WhatsappMessage incomingMessage = WhatsappMessage.of(
+                        text.trim(),
+                        false,
+                        timeText,
+                        now,
+                        WhatsappMessageStatus.SENT,
+                        now
+                );
+
+                targetChat.addMessage(incomingMessage);
+                targetChat.incrementUnreadCount();
+                data.sortChats(targetUuid);
+
+                ServerPlayer targetPlayer = level.getServer().getPlayerList().getPlayer(targetUuid);
+                if (targetPlayer != null) {
+                    syncOwnedPresences(targetPlayer);
+
+                    ModNetwork.sendWhatsappToClient(
+                            new WhatsappMessageAddedS2CPacket(buildChatPayload(targetChat)),
+                            PacketDistributor.PLAYER.with(() -> targetPlayer)
+                    );
+                }
+            }
+        }
+
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new WhatsappMessageAddedS2CPacket(buildChatPayload(senderChat)),
+                PacketDistributor.PLAYER.with(() -> senderPlayer)
+        );
+    }
+
+    public static void handleMarkChatRead(ServerPlayer readerPlayer, String chatId) {
+        if (readerPlayer == null || chatId == null || chatId.isBlank()) {
+            return;
+        }
+
+        ServerLevel level = readerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID readerUuid = readerPlayer.getUUID();
+        syncOwnedPresences(readerPlayer);
+
+        WhatsappChat readerChat = null;
+
+        for (WhatsappChat chat : data.getOrCreateChats(readerUuid)) {
+            if (chat.id().equals(chatId)) {
+                readerChat = chat;
+                break;
+            }
+        }
+
+        if (readerChat == null) {
+            return;
+        }
+
+        readerChat.clearUnreadCount();
+
+        long now = System.currentTimeMillis();
+
+        for (WhatsappMessage message : readerChat.messages()) {
+            if (!message.sentByMe() && message.status() != WhatsappMessageStatus.READ) {
+                readerChat.updateMessageStatus(message.id(), WhatsappMessageStatus.READ, now);
+            }
+        }
+
+        WhatsappContact readerContact = data.findContactForOwner(readerUuid, readerChat.contactId());
+        if (readerContact == null) {
+            data.setDirty();
+            return;
+        }
+
+        WhatsappAccount otherAccount = data.findAccountByPhone(readerContact.phoneNumber());
+        if (otherAccount != null) {
+            UUID otherUuid = otherAccount.playerUuid();
+
+            WhatsappAccount readerAccount = data.findAccountByPlayer(readerUuid);
+            if (readerAccount != null) {
+                WhatsappContact mirrorContact = findMirrorContactByPhone(
+                        data,
+                        otherUuid,
+                        readerAccount.phoneNumber()
+                );
+
+                if (mirrorContact != null) {
+                    WhatsappChat otherChat = data.findChatByContactId(otherUuid, mirrorContact.id());
+                    if (otherChat != null) {
+                        for (WhatsappMessage message : otherChat.messages()) {
+                            if (message.sentByMe() && message.status() == WhatsappMessageStatus.SENT) {
+                                otherChat.updateMessageStatus(message.id(), WhatsappMessageStatus.READ, now);
+
+                                ServerPlayer otherPlayer = level.getServer().getPlayerList().getPlayer(otherUuid);
+                                if (otherPlayer != null) {
+                                    ModNetwork.sendWhatsappToClient(
+                                            new WhatsappMessageStatusUpdatedS2CPacket(
+                                                    new WhatsappMessageStatusPayload(
+                                                            otherChat.id(),
+                                                            message.id(),
+                                                            WhatsappMessageStatus.READ,
+                                                            now,
+                                                            otherChat.unreadCount()
+                                                    )
+                                            ),
+                                            PacketDistributor.PLAYER.with(() -> otherPlayer)
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ServerPlayer reader = level.getServer().getPlayerList().getPlayer(readerUuid);
+        if (reader != null) {
+            for (WhatsappMessage message : readerChat.messages()) {
+                if (!message.sentByMe()) {
+                    ModNetwork.sendWhatsappToClient(
+                            new WhatsappMessageStatusUpdatedS2CPacket(
+                                    new WhatsappMessageStatusPayload(
+                                            readerChat.id(),
+                                            message.id(),
+                                            WhatsappMessageStatus.READ,
+                                            now,
+                                            readerChat.unreadCount()
+                                    )
+                            ),
+                            PacketDistributor.PLAYER.with(() -> reader)
+                    );
+                }
+            }
+        }
+
+        data.sortChats(readerUuid);
+        data.setDirty();
+    }
+
+    public static void handleToggleBlockContact(ServerPlayer ownerPlayer, String contactId) {
+        if (ownerPlayer == null || contactId == null || contactId.isBlank()) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID ownerUuid = ownerPlayer.getUUID();
+        WhatsappContact contact = data.findContactForOwner(ownerUuid, contactId);
+        if (contact == null) {
+            return;
+        }
+
+        contact.setBlocked(!contact.blocked());
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new WhatsappContactUpdatedS2CPacket(buildContactPayload(contact)),
+                PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+
+    public static void handleClearChat(ServerPlayer ownerPlayer, String chatId) {
+        if (ownerPlayer == null || chatId == null || chatId.isBlank()) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID ownerUuid = ownerPlayer.getUUID();
+        WhatsappChat targetChat = null;
+
+        for (WhatsappChat chat : data.getOrCreateChats(ownerUuid)) {
+            if (chat.id().equals(chatId)) {
+                targetChat = chat;
+                break;
+            }
+        }
+
+        if (targetChat == null) {
+            return;
+        }
+
+        targetChat.clearMessages();
+        targetChat.clearUnreadCount();
+        data.sortChats(ownerUuid);
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new WhatsappChatClearedS2CPacket(buildChatPayload(targetChat)),
+                PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+
+    public static void syncOwnedPresences(ServerPlayer ownerPlayer) {
+        if (ownerPlayer == null) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID ownerUuid = ownerPlayer.getUUID();
+        WhatsappAccount ownerAccount = data.findAccountByPlayer(ownerUuid);
+        if (ownerAccount == null) {
+            return;
+        }
+
+        for (WhatsappContact contact : data.getOrCreateContacts(ownerUuid)) {
+            WhatsappPresence presence = data.getOrCreatePresence(ownerUuid, contact.id());
+
+            WhatsappAccount remoteAccount = data.findAccountByPhone(contact.phoneNumber());
+            if (remoteAccount == null) {
+                presence.setOnlineInServer(false);
+                presence.setHasInternet(false);
+                presence.setHasBattery(false);
+                continue;
+            }
+
+            ServerPlayer remotePlayer = level.getServer().getPlayerList().getPlayer(remoteAccount.playerUuid());
+
+            boolean online = WhatsappPresenceResolver.isPlayerOnlineInServer(remotePlayer);
+            boolean internet = WhatsappPresenceResolver.hasInternet(remotePlayer);
+            boolean battery = WhatsappPresenceResolver.hasBattery(remotePlayer);
+
+            presence.setOnlineInServer(online);
+            presence.setHasInternet(internet);
+            presence.setHasBattery(battery);
+            presence.setLastSeenTimestamp(System.currentTimeMillis());
+
+            ModNetwork.sendWhatsappToClient(
+                    new WhatsappPresenceUpdatedS2CPacket(
+                            new WhatsappPresencePayload(
+                                    contact.id(),
+                                    online,
+                                    internet,
+                                    battery,
+                                    presence.lastSeenTimestamp()
+                            )
+                    ),
+                    PacketDistributor.PLAYER.with(() -> ownerPlayer)
+            );
+        }
+
+        data.setDirty();
+    }
+
+    private static WhatsappContact findOrCreateMirrorContact(
+            WhatsappServerData data,
+            UUID ownerUuid,
+            String displayName,
+            String phoneNumber
+    ) {
+        for (WhatsappContact contact : data.getOrCreateContacts(ownerUuid)) {
+            if (phoneNumber.equals(contact.phoneNumber())) {
+                return contact;
+            }
+        }
+
+        WhatsappContact created = WhatsappContact.of(
+                displayName,
+                phoneNumber,
+                WhatsappContact.DEFAULT_PHOTO,
+                "",
+                false,
+                0,
+                0
+        );
+
+        data.getOrCreateContacts(ownerUuid).add(created);
+        data.setDirty();
+        return created;
+    }
+
+    private static WhatsappContact findMirrorContactByPhone(
+            WhatsappServerData data,
+            UUID ownerUuid,
+            String phoneNumber
+    ) {
+        for (WhatsappContact contact : data.getOrCreateContacts(ownerUuid)) {
+            if (phoneNumber.equals(contact.phoneNumber())) {
+                return contact;
+            }
+        }
+        return null;
+    }
+
+    public static WhatsappChatPayload buildChatPayload(WhatsappChat chat) {
+        List<WhatsappSyncMessage> syncMessages = new ArrayList<>();
+
+        for (WhatsappMessage message : chat.messages()) {
+            syncMessages.add(new WhatsappSyncMessage(
+                    message.id(),
+                    message.text(),
+                    message.sentByMe(),
+                    message.timeText(),
+                    message.sortTimestamp(),
+                    message.status(),
+                    message.lastStatusUpdateAt()
+            ));
+        }
+
+        return new WhatsappChatPayload(
+                chat.id(),
+                chat.contactId(),
+                chat.pinned(),
+                chat.archived(),
+                chat.unreadCount(),
+                syncMessages
+        );
+    }
+
+    public static WhatsappContactPayload buildContactPayload(WhatsappContact contact) {
+        return new WhatsappContactPayload(
+                contact.id(),
+                contact.displayName(),
+                contact.phoneNumber(),
+                contact.photoId(),
+                contact.about(),
+                contact.blocked(),
+                contact.commonGroupsCount(),
+                contact.mediaCount()
+        );
+    }
+
+    public static void handleOpenOrCreateChat(ServerPlayer ownerPlayer, String contactId) {
+        if (ownerPlayer == null || contactId == null || contactId.isBlank()) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID ownerUuid = ownerPlayer.getUUID();
+        WhatsappContact contact = data.findContactForOwner(ownerUuid, contactId);
+        if (contact == null) {
+            return;
+        }
+
+        WhatsappChat chat = data.findChatByContactId(ownerUuid, contact.id());
+        if (chat == null) {
+            chat = data.createChat(ownerUuid, contact.id());
+            data.setDirty();
+        }
+
+        ModNetwork.sendWhatsappToClient(
+                new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappChatOpenedS2CPacket(buildChatPayload(chat)),
+                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+
+    public static void handleCreateContact(ServerPlayer ownerPlayer, String displayName, String phoneNumber) {
+        if (ownerPlayer == null) {
+            return;
+        }
+
+        String cleanName = displayName == null ? "" : displayName.trim();
+        String cleanPhone = phoneNumber == null ? "" : phoneNumber.trim();
+
+        if (cleanName.isBlank() || cleanPhone.isBlank()) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        UUID ownerUuid = ownerPlayer.getUUID();
+
+        for (WhatsappContact existing : data.getOrCreateContacts(ownerUuid)) {
+            if (cleanPhone.equals(existing.phoneNumber())) {
+                ModNetwork.sendWhatsappToClient(
+                        new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappContactCreatedS2CPacket(
+                                buildContactPayload(existing),
+                                true
+                        ),
+                        PacketDistributor.PLAYER.with(() -> ownerPlayer)
+                );
+                return;
+            }
+        }
+
+        WhatsappContact created = WhatsappContact.of(
+                cleanName,
+                cleanPhone,
+                WhatsappContact.DEFAULT_PHOTO,
+                "",
+                false,
+                0,
+                0
+        );
+
+        data.getOrCreateContacts(ownerUuid).add(created);
+        data.getOrCreatePresence(ownerUuid, created.id());
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappContactCreatedS2CPacket(
+                        buildContactPayload(created),
+                        true
+                ),
+                PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+    public static void handleTogglePinChat(ServerPlayer ownerPlayer, String chatId) {
+        WhatsappChat chat = findOwnedChat(ownerPlayer, chatId);
+        if (chat == null) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        chat.setPinned(!chat.pinned());
+        data.sortChats(ownerPlayer.getUUID());
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappChatOpenedS2CPacket(buildChatPayload(chat)),
+                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+
+    public static void handleMarkChatUnread(ServerPlayer ownerPlayer, String chatId, boolean unread) {
+        WhatsappChat chat = findOwnedChat(ownerPlayer, chatId);
+        if (chat == null) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        chat.setUnreadCount(unread ? Math.max(1, chat.unreadCount()) : 0);
+        data.sortChats(ownerPlayer.getUUID());
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappChatOpenedS2CPacket(buildChatPayload(chat)),
+                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+
+    public static void handleArchiveChat(ServerPlayer ownerPlayer, String chatId) {
+        WhatsappChat chat = findOwnedChat(ownerPlayer, chatId);
+        if (chat == null) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        chat.setArchived(true);
+        data.sortChats(ownerPlayer.getUUID());
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappChatOpenedS2CPacket(buildChatPayload(chat)),
+                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+
+    public static void handleDeleteChat(ServerPlayer ownerPlayer, String chatId) {
+        if (ownerPlayer == null || chatId == null || chatId.isBlank()) {
+            return;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+        UUID ownerUuid = ownerPlayer.getUUID();
+
+        List<WhatsappChat> chats = data.getOrCreateChats(ownerUuid);
+        chats.removeIf(chat -> chat.id().equals(chatId));
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappChatDeletedS2CPacket(chatId),
+                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> ownerPlayer)
+        );
+    }
+
+    private static WhatsappChat findOwnedChat(ServerPlayer ownerPlayer, String chatId) {
+        if (ownerPlayer == null || chatId == null || chatId.isBlank()) {
+            return null;
+        }
+
+        ServerLevel level = ownerPlayer.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        for (WhatsappChat chat : data.getOrCreateChats(ownerPlayer.getUUID())) {
+            if (chat.id().equals(chatId)) {
+                return chat;
+            }
+        }
+
+        return null;
+    }
+
+}
+
