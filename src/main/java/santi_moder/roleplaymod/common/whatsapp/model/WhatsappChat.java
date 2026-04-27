@@ -1,4 +1,8 @@
-package santi_moder.roleplaymod.client.phone.app.whatsapp;
+package santi_moder.roleplaymod.common.whatsapp.model;
+
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -140,6 +144,60 @@ public final class WhatsappChat {
     public long getLastMessageTimestamp() {
         WhatsappMessage last = getLastMessageObject();
         return last == null ? Long.MIN_VALUE : last.sortTimestamp();
+    }
+
+    public CompoundTag save() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("id", id);
+        tag.putString("contactId", contactId);
+        tag.putBoolean("pinned", pinned);
+        tag.putBoolean("archived", archived);
+        tag.putInt("unreadCount", unreadCount);
+
+        ListTag messagesTag = new ListTag();
+        for (WhatsappMessage message : messages) {
+            if (message != null) {
+                messagesTag.add(message.save());
+            }
+        }
+
+        tag.put("messages", messagesTag);
+        return tag;
+    }
+
+    public static WhatsappChat load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        String id = tag.getString("id");
+        String contactId = tag.getString("contactId");
+        boolean pinned = tag.getBoolean("pinned");
+        boolean archived = tag.getBoolean("archived");
+        int unreadCount = tag.getInt("unreadCount");
+
+        List<WhatsappMessage> messages = new ArrayList<>();
+
+        if (tag.contains("messages", Tag.TAG_LIST)) {
+            ListTag messagesTag = tag.getList("messages", Tag.TAG_COMPOUND);
+
+            for (int i = 0; i < messagesTag.size(); i++) {
+                WhatsappMessage message = WhatsappMessage.load(messagesTag.getCompound(i));
+                if (message != null) {
+                    messages.add(message);
+                }
+            }
+        }
+
+        return new WhatsappChat(
+                id,
+                contactId,
+                pinned,
+                archived,
+                unreadCount,
+                messages
+        );
     }
 
     @Override

@@ -1,4 +1,6 @@
-package santi_moder.roleplaymod.client.phone.app.whatsapp;
+package santi_moder.roleplaymod.common.whatsapp.model;
+
+import net.minecraft.nbt.CompoundTag;
 
 public final class WhatsappPresence {
 
@@ -60,5 +62,31 @@ public final class WhatsappPresence {
 
     public boolean canReceiveMessages() {
         return onlineInServer && hasInternet && hasBattery;
+    }
+
+    public CompoundTag save() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("contactId", contactId);
+        tag.putBoolean("onlineInServer", onlineInServer);
+        tag.putBoolean("hasInternet", hasInternet);
+        tag.putBoolean("hasBattery", hasBattery);
+        tag.putLong("lastSeenTimestamp", lastSeenTimestamp);
+
+        return tag;
+    }
+
+    public static WhatsappPresence load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        return new WhatsappPresence(
+                tag.getString("contactId"),
+                tag.getBoolean("onlineInServer"),
+                tag.getBoolean("hasInternet"),
+                tag.getBoolean("hasBattery"),
+                tag.getLong("lastSeenTimestamp")
+        );
     }
 }

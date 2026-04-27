@@ -30,6 +30,48 @@ public final class PhoneData {
 
     public static void initializeIfMissing(ItemStack stack) {
         PhoneTagAccess.getOrCreatePhoneTag(stack);
+        PhoneInstalledAppsData.ensureDefaultInstalledApps(stack);
+    }
+
+    public static String getPhoneId(ItemStack stack) {
+        return PhoneTagAccess.getString(stack, PhoneDataKeys.TAG_PHONE_ID, "");
+    }
+
+    public static boolean hasPhoneId(ItemStack stack) {
+        return !getPhoneId(stack).isBlank();
+    }
+
+    public static boolean hasSim(ItemStack stack) {
+        return PhoneTagAccess.getBoolean(stack, PhoneDataKeys.TAG_HAS_SIM, false);
+    }
+
+    public static String getSimId(ItemStack stack) {
+        return PhoneTagAccess.getString(stack, PhoneDataKeys.TAG_SIM_ID, "");
+    }
+
+    public static String getPhoneNumber(ItemStack stack) {
+        return PhoneTagAccess.getString(stack, PhoneDataKeys.TAG_PHONE_NUMBER, "");
+    }
+
+    public static void installSim(ItemStack stack, String simId, String phoneNumber) {
+        PhoneTagAccess.setBoolean(stack, PhoneDataKeys.TAG_HAS_SIM, true);
+        PhoneTagAccess.setString(stack, PhoneDataKeys.TAG_SIM_ID, simId);
+        PhoneTagAccess.setString(stack, PhoneDataKeys.TAG_PHONE_NUMBER, phoneNumber);
+        PhoneTagAccess.setString(stack, PhoneDataKeys.TAG_CARRIER, "Antel");
+    }
+
+    public static void removeSim(ItemStack stack) {
+        PhoneTagAccess.setBoolean(stack, PhoneDataKeys.TAG_HAS_SIM, false);
+        PhoneTagAccess.setString(stack, PhoneDataKeys.TAG_SIM_ID, "");
+        PhoneTagAccess.setString(stack, PhoneDataKeys.TAG_PHONE_NUMBER, "");
+    }
+
+    public static String getCarrier(ItemStack stack) {
+        return PhoneTagAccess.getString(stack, PhoneDataKeys.TAG_CARRIER, "Antel");
+    }
+
+    public static void setCarrier(ItemStack stack, String carrier) {
+        PhoneTagAccess.setString(stack, PhoneDataKeys.TAG_CARRIER, carrier);
     }
 
     public static PhoneBrand getBrand(ItemStack stack) {
@@ -246,6 +288,18 @@ public final class PhoneData {
 
     public static void setSilentMode(ItemStack stack, boolean silentMode) {
         PhoneSettingsData.setSilentMode(stack, silentMode);
+    }
+
+    public static boolean isAppInstalled(ItemStack stack, PhoneAppId appId) {
+        return PhoneInstalledAppsData.isInstalled(stack, appId);
+    }
+
+    public static void installApp(ItemStack stack, PhoneAppId appId) {
+        PhoneInstalledAppsData.installApp(stack, appId);
+    }
+
+    public static void uninstallApp(ItemStack stack, PhoneAppId appId) {
+        PhoneInstalledAppsData.uninstallApp(stack, appId);
     }
 
     public static void toggleSilentMode(ItemStack stack) {

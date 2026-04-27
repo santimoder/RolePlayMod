@@ -20,6 +20,7 @@ public enum PhoneAppId {
     WHATSAPP("WhatsApp", true, false, "whatsapp.png"),
     PHOTOS("Fotos", true, false, "photos.png"),
     MAPS("Maps", true, false, "maps.png"),
+    SAFARI("Safari", true, false, "safari.png"),
     INSTAGRAM("Instagram", true, false, "instagram.png"),
     TWITTER("Twitter", true, false, "twitter.png"),
     SPOTIFY("Spotify", true, false, "spotify.png"),
@@ -37,7 +38,6 @@ public enum PhoneAppId {
         this.displayName = displayName;
         this.visibleOnHome = visibleOnHome;
         this.systemApp = systemApp;
-
         this.icon = iconFile != null
                 ? new ResourceLocation(RolePlayMod.MOD_ID, "textures/phone/apps/" + iconFile)
                 : null;

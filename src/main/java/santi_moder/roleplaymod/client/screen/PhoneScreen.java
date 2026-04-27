@@ -277,6 +277,11 @@ public class PhoneScreen extends Screen {
             return PhoneAppId.LOCK_SCREEN;
         }
 
+        if (requestedApp.isVisibleOnHome()
+                && !PhoneData.isAppInstalled(getPhoneStack(), requestedApp)) {
+            return PhoneAppId.HOME;
+        }
+
         return requestedApp;
     }
 

@@ -5,6 +5,8 @@ import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
 import santi_moder.roleplaymod.RolePlayMod;
+import santi_moder.roleplaymod.network.phone.PhoneAppInstallC2SPacket;
+import santi_moder.roleplaymod.network.phone.PhoneSettingsUpdateC2SPacket;
 import santi_moder.roleplaymod.network.phone.whatsapp.*;
 import santi_moder.roleplaymod.network.radio.*;
 
@@ -177,6 +179,24 @@ public class ModNetwork {
                 RadioTransmissionStatePacket::decode,
                 RadioTransmissionStatePacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        INVENTORY_CHANNEL.registerMessage(
+                nextInvId(),
+                PhoneSettingsUpdateC2SPacket.class,
+                PhoneSettingsUpdateC2SPacket::encode,
+                PhoneSettingsUpdateC2SPacket::decode,
+                PhoneSettingsUpdateC2SPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        INVENTORY_CHANNEL.registerMessage(
+                nextInvId(),
+                PhoneAppInstallC2SPacket.class,
+                PhoneAppInstallC2SPacket::encode,
+                PhoneAppInstallC2SPacket::decode,
+                PhoneAppInstallC2SPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_SERVER)
         );
 
         // WHATSAPP

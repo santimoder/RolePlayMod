@@ -2,6 +2,10 @@ package santi_moder.roleplaymod.common.phone;
 
 public final class PhoneDataKeys {
 
+    public static final String TAG_PHONE_ID = "phone_id";
+    public static final String TAG_HAS_SIM = "has_sim";
+    public static final String TAG_SIM_ID = "sim_id";
+    public static final String TAG_PHONE_NUMBER = "phone_number";
     public static final String TAG_PHONE = "rp_phone";
 
     public static final String TAG_BRAND = "brand";
@@ -30,6 +34,9 @@ public final class PhoneDataKeys {
     public static final String TAG_NOTIFICATION_VOLUME = "notification_volume";
     public static final String TAG_SILENT_MODE = "silent_mode";
 
+    public static final String TAG_INSTALLED_APPS = "installed_apps";
+
+    public static final String TAG_CARRIER = "carrier";
     private PhoneDataKeys() {
     }
 }

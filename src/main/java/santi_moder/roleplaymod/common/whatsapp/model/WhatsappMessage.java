@@ -1,4 +1,6 @@
-package santi_moder.roleplaymod.client.phone.app.whatsapp;
+package santi_moder.roleplaymod.common.whatsapp.model;
+
+import net.minecraft.nbt.CompoundTag;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -81,6 +83,57 @@ public final class WhatsappMessage {
     public WhatsappMessage withStatus(WhatsappMessageStatus newStatus, long updatedAt) {
         return new WhatsappMessage(id, text, sentByMe, timeText, sortTimestamp, newStatus, updatedAt);
     }
+
+    // =========================
+    // SERIALIZACIÓN NBT
+    // =========================
+
+    public CompoundTag save() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("id", id);
+        tag.putString("text", text);
+        tag.putBoolean("sentByMe", sentByMe);
+        tag.putString("timeText", timeText);
+        tag.putLong("sortTimestamp", sortTimestamp);
+        tag.putString("status", status.name());
+        tag.putLong("lastStatusUpdateAt", lastStatusUpdateAt);
+
+        return tag;
+    }
+
+    public static WhatsappMessage load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        String id = tag.getString("id");
+        String text = tag.getString("text");
+        boolean sentByMe = tag.getBoolean("sentByMe");
+        String timeText = tag.getString("timeText");
+        long sortTimestamp = tag.getLong("sortTimestamp");
+
+        WhatsappMessageStatus status;
+        try {
+            status = WhatsappMessageStatus.valueOf(tag.getString("status"));
+        } catch (Exception e) {
+            status = WhatsappMessageStatus.PENDING;
+        }
+
+        long lastStatusUpdateAt = tag.getLong("lastStatusUpdateAt");
+
+        return new WhatsappMessage(
+                id,
+                text,
+                sentByMe,
+                timeText,
+                sortTimestamp,
+                status,
+                lastStatusUpdateAt
+        );
+    }
+
+    // =========================
 
     @Override
     public boolean equals(Object obj) {

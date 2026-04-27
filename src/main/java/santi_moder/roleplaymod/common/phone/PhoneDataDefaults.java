@@ -1,6 +1,7 @@
 package santi_moder.roleplaymod.common.phone;
 
 import net.minecraft.nbt.CompoundTag;
+import java.util.UUID;
 
 public final class PhoneDataDefaults {
 
@@ -27,6 +28,11 @@ public final class PhoneDataDefaults {
     }
 
     public static void writeDefaults(CompoundTag phoneTag) {
+        phoneTag.putString(PhoneDataKeys.TAG_PHONE_ID, UUID.randomUUID().toString());
+        phoneTag.putBoolean(PhoneDataKeys.TAG_HAS_SIM, false);
+        phoneTag.putString(PhoneDataKeys.TAG_CARRIER, "Antel");
+        phoneTag.putString(PhoneDataKeys.TAG_SIM_ID, "");
+        phoneTag.putString(PhoneDataKeys.TAG_PHONE_NUMBER, "");
         phoneTag.putString(PhoneDataKeys.TAG_BRAND, PhoneBrand.APPLE.name());
         phoneTag.putString(PhoneDataKeys.TAG_MODEL, DEFAULT_MODEL);
         phoneTag.putString(PhoneDataKeys.TAG_WALLPAPER, WALLPAPER_DEFAULT);
@@ -55,6 +61,13 @@ public final class PhoneDataDefaults {
     }
 
     public static void applyMissingDefaults(CompoundTag phoneTag) {
+        if (!phoneTag.contains(PhoneDataKeys.TAG_PHONE_ID) || phoneTag.getString(PhoneDataKeys.TAG_PHONE_ID).isBlank()) {
+            phoneTag.putString(PhoneDataKeys.TAG_PHONE_ID, UUID.randomUUID().toString());
+        }
+        putBooleanIfMissing(phoneTag, PhoneDataKeys.TAG_HAS_SIM, false);
+        putStringIfMissing(phoneTag, PhoneDataKeys.TAG_SIM_ID, "");
+        putStringIfMissing(phoneTag, PhoneDataKeys.TAG_CARRIER, "Antel");
+        putStringIfMissing(phoneTag, PhoneDataKeys.TAG_PHONE_NUMBER, "");
         putStringIfMissing(phoneTag, PhoneDataKeys.TAG_BRAND, PhoneBrand.APPLE.name());
         putStringIfMissing(phoneTag, PhoneDataKeys.TAG_MODEL, DEFAULT_MODEL);
         putStringIfMissing(phoneTag, PhoneDataKeys.TAG_WALLPAPER, WALLPAPER_DEFAULT);

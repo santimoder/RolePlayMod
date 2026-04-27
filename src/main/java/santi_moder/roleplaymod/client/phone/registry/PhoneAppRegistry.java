@@ -21,6 +21,7 @@ public class PhoneAppRegistry {
         register(new PasscodePhoneApp());
         register(new HomePhoneApp());
         register(new SettingsPhoneApp());
+        register(new AppStorePhoneApp());
         register(new WhatsappPhoneApp());
     }
 

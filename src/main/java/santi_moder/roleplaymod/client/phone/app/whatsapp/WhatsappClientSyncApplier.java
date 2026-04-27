@@ -1,5 +1,6 @@
 package santi_moder.roleplaymod.client.phone.app.whatsapp;
 
+import santi_moder.roleplaymod.common.whatsapp.model.*;
 import santi_moder.roleplaymod.common.whatsapp.sync.*;
 
 import java.util.ArrayList;

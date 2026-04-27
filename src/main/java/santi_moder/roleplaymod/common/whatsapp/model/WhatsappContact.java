@@ -1,4 +1,6 @@
-package santi_moder.roleplaymod.client.phone.app.whatsapp;
+package santi_moder.roleplaymod.common.whatsapp.model;
+
+import net.minecraft.nbt.CompoundTag;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -133,6 +135,38 @@ public final class WhatsappContact {
         String first = parts[0].isEmpty() ? "" : parts[0].substring(0, 1);
         String second = parts[1].isEmpty() ? "" : parts[1].substring(0, 1);
         return (first + second).toUpperCase();
+    }
+
+    public CompoundTag save() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("id", id);
+        tag.putString("displayName", displayName);
+        tag.putString("phoneNumber", phoneNumber);
+        tag.putString("photoId", photoId);
+        tag.putString("about", about);
+        tag.putBoolean("blocked", blocked);
+        tag.putInt("commonGroupsCount", commonGroupsCount);
+        tag.putInt("mediaCount", mediaCount);
+
+        return tag;
+    }
+
+    public static WhatsappContact load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        return new WhatsappContact(
+                tag.getString("id"),
+                tag.getString("displayName"),
+                tag.getString("phoneNumber"),
+                tag.getString("photoId"),
+                tag.getString("about"),
+                tag.getBoolean("blocked"),
+                tag.getInt("commonGroupsCount"),
+                tag.getInt("mediaCount")
+        );
     }
 
     private static String safe(String value, String fallback) {

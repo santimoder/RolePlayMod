@@ -38,16 +38,17 @@ public class HomePhoneApp extends AbstractPhoneApp {
             new GridAppSpec(PhoneAppId.CONTACTS, "Cont"),
             new GridAppSpec(PhoneAppId.PHOTOS, "Fotos"),
             new GridAppSpec(PhoneAppId.MAPS, "Maps"),
-            new GridAppSpec(PhoneAppId.INSTAGRAM, "Insta"),
+            new GridAppSpec(PhoneAppId.SAFARI, "Safari"),
 
-            new GridAppSpec(PhoneAppId.TWITTER, "Tw"),
-            new GridAppSpec(PhoneAppId.SPOTIFY, "Spot"),
             new GridAppSpec(PhoneAppId.WEATHER, "Clima"),
             new GridAppSpec(PhoneAppId.CLOCK, "Reloj"),
-
             new GridAppSpec(PhoneAppId.APP_STORE, "Store"),
             new GridAppSpec(PhoneAppId.SETTINGS, "Config"),
-            new GridAppSpec(PhoneAppId.WHATSAPP, "Wsp")
+
+            new GridAppSpec(PhoneAppId.WHATSAPP, "Wsp"),
+            new GridAppSpec(PhoneAppId.INSTAGRAM, "Insta"),
+            new GridAppSpec(PhoneAppId.TWITTER, "Tw"),
+            new GridAppSpec(PhoneAppId.SPOTIFY, "Spot")
     };
 
     private static final GridAppSpec[] DOCK_APPS = {
@@ -65,6 +66,7 @@ public class HomePhoneApp extends AbstractPhoneApp {
 
     @Override
     public void onOpen(PhoneScreen screen, ItemStack phoneStack) {
+        PhoneData.initializeIfMissing(phoneStack);
         rebuildLayout(screen, phoneStack);
     }
 
@@ -76,11 +78,18 @@ public class HomePhoneApp extends AbstractPhoneApp {
     @Override
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         ItemStack stack = screen.getPhoneStack();
+        PhoneData.initializeIfMissing(stack);
         rebuildLayout(screen, stack);
 
         renderDockBackground(screen, guiGraphics);
-        mainGrid.render(screen, guiGraphics, mouseX, mouseY);
-        dockGrid.render(screen, guiGraphics, mouseX, mouseY);
+
+        if (mainGrid != null) {
+            mainGrid.render(screen, guiGraphics, mouseX, mouseY);
+        }
+
+        if (dockGrid != null) {
+            dockGrid.render(screen, guiGraphics, mouseX, mouseY);
+        }
     }
 
     private void rebuildLayout(PhoneScreen screen, ItemStack stack) {
@@ -97,7 +106,9 @@ public class HomePhoneApp extends AbstractPhoneApp {
 
         List<PhoneIconGrid.IconEntry> mainEntries = new ArrayList<>();
         for (GridAppSpec app : GRID_APPS) {
-            mainEntries.add(new PhoneIconGrid.IconEntry(app.appId(), app.label()));
+            if (PhoneData.isAppInstalled(stack, app.appId())) {
+                mainEntries.add(new PhoneIconGrid.IconEntry(app.appId(), app.label()));
+            }
         }
         mainGrid.setEntries(mainEntries);
 
@@ -112,7 +123,9 @@ public class HomePhoneApp extends AbstractPhoneApp {
 
         List<PhoneIconGrid.IconEntry> dockEntries = new ArrayList<>();
         for (GridAppSpec app : DOCK_APPS) {
-            dockEntries.add(new PhoneIconGrid.IconEntry(app.appId(), app.label()));
+            if (PhoneData.isAppInstalled(stack, app.appId())) {
+                dockEntries.add(new PhoneIconGrid.IconEntry(app.appId(), app.label()));
+            }
         }
         dockGrid.setEntries(dockEntries);
     }
@@ -140,7 +153,7 @@ public class HomePhoneApp extends AbstractPhoneApp {
 
     @Override
     public boolean mouseClicked(PhoneScreen screen, double mouseX, double mouseY, int button) {
-        if (button != 0) {
+        if (button != 0 || mainGrid == null || dockGrid == null) {
             return false;
         }
 
@@ -150,6 +163,12 @@ public class HomePhoneApp extends AbstractPhoneApp {
         }
 
         if (clicked != null) {
+            ItemStack stack = screen.getPhoneStack();
+
+            if (!PhoneData.isAppInstalled(stack, clicked.appId())) {
+                return true;
+            }
+
             screen.openAppFromIcon(
                     clicked.appId(),
                     new PhoneTransitionContext(clicked.x(), clicked.y(), clicked.width(), clicked.height())

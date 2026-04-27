@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import net.minecraft.client.gui.GuiGraphics;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
+import santi_moder.roleplaymod.common.whatsapp.model.WhatsappProfile;
 
 public final class WhatsappProfileView {
 

@@ -1,7 +1,7 @@
 package santi_moder.roleplaymod.common.whatsapp.sync;
 
 import net.minecraft.network.FriendlyByteBuf;
-import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappMessageStatus;
+import santi_moder.roleplaymod.common.whatsapp.model.WhatsappMessageStatus;
 
 public record WhatsappSyncMessage(
         String id,

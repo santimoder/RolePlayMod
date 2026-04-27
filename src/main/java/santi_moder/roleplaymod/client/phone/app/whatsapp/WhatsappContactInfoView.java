@@ -5,6 +5,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
+import santi_moder.roleplaymod.common.whatsapp.model.WhatsappChat;
+import santi_moder.roleplaymod.common.whatsapp.model.WhatsappContact;
 
 import java.util.ArrayList;
 import java.util.List;

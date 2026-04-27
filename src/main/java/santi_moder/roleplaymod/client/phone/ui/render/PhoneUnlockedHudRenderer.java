@@ -1,7 +1,9 @@
 package santi_moder.roleplaymod.client.phone.ui.render;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
+import santi_moder.roleplaymod.common.phone.PhoneData;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -28,6 +30,8 @@ public final class PhoneUnlockedHudRenderer {
         int phoneWidth = screen.getPhoneWidth();
         int innerRight = phoneX + phoneWidth - STATUS_RIGHT_PADDING;
 
+        ItemStack phoneStack = screen.getPhoneStack();
+
         String timeText = LocalTime.now().format(TIME_FORMATTER);
 
         guiGraphics.drawString(
@@ -39,17 +43,19 @@ public final class PhoneUnlockedHudRenderer {
                 false
         );
 
-        String networkText = "4G";
-        int networkX = innerRight - screen.getPhoneFont().width(networkText) - 26;
+        String networkText = PhoneData.hasSim(phoneStack) ? "4G" : "";
+        if (!networkText.isBlank()) {
+            int networkX = innerRight - screen.getPhoneFont().width(networkText) - 26;
 
-        guiGraphics.drawString(
-                screen.getPhoneFont(),
-                networkText,
-                networkX,
-                phoneY + STATUS_TOP_PADDING,
-                COLOR_WHITE,
-                false
-        );
+            guiGraphics.drawString(
+                    screen.getPhoneFont(),
+                    networkText,
+                    networkX,
+                    phoneY + STATUS_TOP_PADDING,
+                    COLOR_WHITE,
+                    false
+            );
+        }
 
         drawBattery(guiGraphics, innerRight - 18, phoneY + STATUS_TOP_PADDING, BATTERY_WIDTH, BATTERY_HEIGHT);
     }

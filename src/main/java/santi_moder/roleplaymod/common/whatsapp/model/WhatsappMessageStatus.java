@@ -1,4 +1,4 @@
-package santi_moder.roleplaymod.client.phone.app.whatsapp;
+package santi_moder.roleplaymod.common.whatsapp.model;
 
 public enum WhatsappMessageStatus {
     PENDING,

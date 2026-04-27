@@ -6,7 +6,11 @@ import santi_moder.roleplaymod.client.phone.app.whatsapp.*;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.phone.PhoneAppId;
+import santi_moder.roleplaymod.common.phone.PhoneData;
 import santi_moder.roleplaymod.common.phone.PhoneWhatsappData;
+import santi_moder.roleplaymod.common.whatsapp.model.WhatsappChat;
+import santi_moder.roleplaymod.common.whatsapp.model.WhatsappChatScreen;
+import santi_moder.roleplaymod.common.whatsapp.model.WhatsappContact;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.phone.whatsapp.*;
 
@@ -39,13 +43,13 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
     public void onOpen(PhoneScreen screen, ItemStack phoneStack) {
         WhatsappState loaded = PhoneWhatsappData.loadState(phoneStack);
 
-        state.replaceChats(loaded.getChats());
-        state.replaceContacts(loaded.getContacts());
-        state.replacePresences(loaded.getPresences());
-        state.setSelectedChatId(null);
-        state.setDraftMessage("");
+        state.replaceChats(new java.util.ArrayList<>());
+        state.replaceContacts(new java.util.ArrayList<>());
+        state.replacePresences(new java.util.ArrayList<>());
+        state.setSelectedChatId(loaded.getSelectedChatId());
+        state.setDraftMessage(loaded.getDraftMessage());
         state.setProfile(loaded.getProfile());
-        state.setChatScreen(WhatsappChatScreen.LIST);
+        state.setChatScreen(loaded.getChatScreen());
         state.clearNewContactDraft();
 
         state.setLocalUserInServer(loaded.isLocalUserInServer());
@@ -80,7 +84,7 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
 
     @Override
     public void tick(PhoneScreen screen, ItemStack phoneStack) {
-        if (!requestedInitialSync) {
+        if (!requestedInitialSync && canUseWhatsapp(phoneStack)) {
             requestedInitialSync = true;
             ModNetwork.sendWhatsappToServer(new WhatsappRequestInitialStateC2SPacket());
         }
@@ -142,8 +146,39 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
         PhoneWhatsappData.saveState(phoneStack, state);
     }
 
+    private void renderNoSimScreen(PhoneScreen screen, GuiGraphics guiGraphics) {
+        guiGraphics.drawCenteredString(
+                screen.getPhoneFont(),
+                "WhatsApp",
+                screen.getPhoneCenterX(),
+                screen.getPhoneY() + TITLE_Y,
+                PhoneUi.COLOR_TEXT
+        );
+
+        guiGraphics.drawCenteredString(
+                screen.getPhoneFont(),
+                "Insertar chip",
+                screen.getPhoneCenterX(),
+                screen.getPhoneCenterY() - 6,
+                PhoneUi.COLOR_TEXT
+        );
+
+        guiGraphics.drawCenteredString(
+                screen.getPhoneFont(),
+                "Necesitas una SIM para usar WhatsApp",
+                screen.getPhoneCenterX(),
+                screen.getPhoneCenterY() + 10,
+                PhoneUi.COLOR_SUBTEXT
+        );
+    }
+
     @Override
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            renderNoSimScreen(screen, guiGraphics);
+            return;
+        }
+
         switch (activeTab) {
             case CHATS -> renderChatsTab(screen, guiGraphics, mouseX, mouseY);
             case YOU -> profileView.render(screen, guiGraphics, mouseX, mouseY, state);
@@ -180,6 +215,10 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
 
     @Override
     public boolean mouseClicked(PhoneScreen screen, double mouseX, double mouseY, int button) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            return true;
+        }
+
         if (button != 0) {
             return false;
         }
@@ -288,6 +327,10 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
 
     @Override
     public boolean mouseReleased(PhoneScreen screen, double mouseX, double mouseY, int button) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            return true;
+        }
+
         if (activeTab == WhatsappTab.CHATS && state.getChatScreen() == WhatsappChatScreen.LIST) {
             boolean handledRelease = chatsView.mouseReleased(screen, mouseX, mouseY, button, state, chatsSearchQuery);
 
@@ -332,6 +375,10 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
             double dragX,
             double dragY
     ) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            return true;
+        }
+
         if (activeTab == WhatsappTab.CHATS && state.getChatScreen() == WhatsappChatScreen.LIST) {
             return chatsView.mouseDragged(screen, mouseX, mouseY, button, dragX, dragY, state, chatsSearchQuery);
         }
@@ -340,6 +387,10 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
 
     @Override
     public boolean charTyped(PhoneScreen screen, char codePoint, int modifiers) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            return true;
+        }
+
         if (activeTab == WhatsappTab.CHATS) {
             switch (state.getChatScreen()) {
                 case CONVERSATION -> {
@@ -376,6 +427,10 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
 
     @Override
     public boolean mouseScrolled(PhoneScreen screen, double mouseX, double mouseY, double scrollDelta) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            return true;
+        }
+
         if (activeTab != WhatsappTab.CHATS) {
             return false;
         }
@@ -392,6 +447,10 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
 
     @Override
     public boolean keyPressed(PhoneScreen screen, int keyCode, int scanCode, int modifiers) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            return true;
+        }
+
         if (activeTab == WhatsappTab.CHATS) {
             switch (state.getChatScreen()) {
                 case LIST -> {
@@ -488,6 +547,10 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
 
     @Override
     public boolean mousePressed(PhoneScreen screen, double mouseX, double mouseY, int button) {
+        if (!canUseWhatsapp(screen.getPhoneStack())) {
+            return true;
+        }
+
         if (activeTab == WhatsappTab.CHATS && state.getChatScreen() == WhatsappChatScreen.LIST) {
             return chatsView.mousePressed(screen, mouseX, mouseY, button, state, chatsSearchQuery);
         }
@@ -531,4 +594,13 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
             }
         }
     }
+
+    private boolean canUseWhatsapp(ItemStack phoneStack) {
+        return phoneStack != null
+                && !phoneStack.isEmpty()
+                && PhoneData.hasSim(phoneStack)
+                && !PhoneData.getSimId(phoneStack).isBlank()
+                && !PhoneData.getPhoneNumber(phoneStack).isBlank();
+    }
+
 }

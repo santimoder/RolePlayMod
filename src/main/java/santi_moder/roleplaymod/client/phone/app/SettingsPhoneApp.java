@@ -14,6 +14,8 @@ import santi_moder.roleplaymod.client.phone.ui.render.PhoneWallpaperRenderer;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.phone.PhoneAppId;
 import santi_moder.roleplaymod.common.phone.PhoneData;
+import santi_moder.roleplaymod.network.ModNetwork;
+import santi_moder.roleplaymod.network.phone.PhoneSettingsUpdateC2SPacket;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
@@ -492,6 +494,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
 
             if (screen.isInside(mouseX, mouseY, x, y, WALLPAPER_OPTION_W, WALLPAPER_OPTION_H)) {
                 PhoneData.setWallpaper(stack, option.id());
+                sendPhoneSettingUpdate("set_wallpaper", option.id());
                 return true;
             }
         }
@@ -553,6 +556,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
 
         if (screen.isInside(mouseX, mouseY, left, y + 198, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.cycleProfilePhoto(stack);
+            sendPhoneSettingUpdate("cycle_profile_photo", "");
             return true;
         }
 
@@ -565,16 +569,19 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
 
         if (screen.isInside(mouseX, mouseY, left, y + 112, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.toggleThemeMode(stack);
+            sendPhoneSettingUpdate("toggle_theme", "");
             return true;
         }
 
         if (screen.isInside(mouseX, mouseY, left, y + 134, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.cycleTextSize(stack);
+            sendPhoneSettingUpdate("cycle_text_size", "");
             return true;
         }
 
         if (screen.isInside(mouseX, mouseY, left, y + 156, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.cycleIconSize(stack);
+            sendPhoneSettingUpdate("cycle_icon_size", "");
             return true;
         }
 
@@ -587,16 +594,19 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
 
         if (screen.isInside(mouseX, mouseY, left, y + 112, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.cycleCallVolume(stack);
+            sendPhoneSettingUpdate("cycle_call_volume", "");
             return true;
         }
 
         if (screen.isInside(mouseX, mouseY, left, y + 134, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.cycleNotificationVolume(stack);
+            sendPhoneSettingUpdate("cycle_notification_volume", "");
             return true;
         }
 
         if (screen.isInside(mouseX, mouseY, left, y + 156, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.toggleSilentMode(stack);
+            sendPhoneSettingUpdate("toggle_silent", "");
             return true;
         }
 
@@ -683,6 +693,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                     PhoneData.setPasscode(stack, enteredCode);
                     PhoneData.setHasPassword(stack, true);
                     PhoneData.setLocked(stack, true);
+                    sendPhoneSettingUpdate("enable_passcode", enteredCode);
                     beginSecurityState(SecurityFlowState.NONE);
                 } else {
                     pendingNewCode = "";
@@ -697,6 +708,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                     PhoneData.setHasPassword(stack, false);
                     PhoneData.setLocked(stack, false);
                     PhoneData.clearFaceId(stack);
+                    sendPhoneSettingUpdate("disable_passcode", "");
                     beginSecurityState(SecurityFlowState.NONE);
                 } else {
                     onSecurityFail();
@@ -721,6 +733,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
             case CONFIRM_CHANGED_CODE -> {
                 if (pendingNewCode.equals(enteredCode)) {
                     PhoneData.setPasscode(stack, enteredCode);
+                    sendPhoneSettingUpdate("set_passcode", enteredCode);
                     beginSecurityState(SecurityFlowState.NONE);
                 } else {
                     pendingNewCode = "";
@@ -734,9 +747,11 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                 if (PhoneData.validatePasscode(stack, enteredCode)) {
                     if (PhoneData.hasFaceId(stack)) {
                         PhoneData.clearFaceId(stack);
+                        sendPhoneSettingUpdate("clear_face_id", "");
                     } else if (player != null) {
                         PhoneData.registerFaceId(stack, player);
                         PhoneData.setLocked(stack, true);
+                        sendPhoneSettingUpdate("register_face_id", "");
                     }
                     beginSecurityState(SecurityFlowState.NONE);
                 } else {
@@ -896,15 +911,18 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         switch (editorMode) {
             case PROFILE_NAME -> {
                 PhoneData.setProfileName(stack, editorBuffer.trim());
+                sendPhoneSettingUpdate("set_profile_name", editorBuffer.trim());
                 closeEditor();
             }
             case PROFILE_SURNAME -> {
                 PhoneData.setProfileSurname(stack, editorBuffer.trim());
+                sendPhoneSettingUpdate("set_profile_surname", editorBuffer.trim());
                 closeEditor();
             }
             case PROFILE_BIRTHDATE -> {
                 if (isValidBirthdate(editorBuffer)) {
                     PhoneData.setProfileBirthdate(stack, editorBuffer);
+                    sendPhoneSettingUpdate("set_profile_birthdate", editorBuffer);
                     closeEditor();
                 } else {
                     editorErrorTicks = SECURITY_ERROR_TICKS;
@@ -1003,6 +1021,10 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         SettingsCategory(String title) {
             this.title = title;
         }
+    }
+
+    private void sendPhoneSettingUpdate(String action, String value) {
+        ModNetwork.sendInventoryToServer(new PhoneSettingsUpdateC2SPacket(action, value));
     }
 
     private enum SecurityFlowState {

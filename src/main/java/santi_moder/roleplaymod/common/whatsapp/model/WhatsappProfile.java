@@ -1,4 +1,6 @@
-package santi_moder.roleplaymod.client.phone.app.whatsapp;
+package santi_moder.roleplaymod.common.whatsapp.model;
+
+import net.minecraft.nbt.CompoundTag;
 
 public final class WhatsappProfile {
 
@@ -55,6 +57,30 @@ public final class WhatsappProfile {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = safe(phoneNumber);
+    }
+
+    public CompoundTag save() {
+        CompoundTag tag = new CompoundTag();
+
+        tag.putString("photoId", photoId);
+        tag.putString("about", about);
+        tag.putString("displayName", displayName);
+        tag.putString("phoneNumber", phoneNumber);
+
+        return tag;
+    }
+
+    public static WhatsappProfile load(CompoundTag tag) {
+        if (tag == null) {
+            return createDefault("", "");
+        }
+
+        return new WhatsappProfile(
+                tag.getString("photoId"),
+                tag.getString("about"),
+                tag.getString("displayName"),
+                tag.getString("phoneNumber")
+        );
     }
 
     private static String safe(String value) {

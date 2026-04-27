@@ -1,9 +1,10 @@
 package santi_moder.roleplaymod.client.phone.app.whatsapp;
 
+import santi_moder.roleplaymod.common.whatsapp.model.*;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 
 public final class WhatsappState {
 

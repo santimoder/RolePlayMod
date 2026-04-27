@@ -1,7 +1,9 @@
 package santi_moder.roleplaymod.client.phone.ui.render;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
+import santi_moder.roleplaymod.common.phone.PhoneData;
 
 public final class PhoneLockedHudRenderer {
 
@@ -23,26 +25,34 @@ public final class PhoneLockedHudRenderer {
         int phoneWidth = screen.getPhoneWidth();
         int innerRight = phoneX + phoneWidth - STATUS_RIGHT_PADDING;
 
+        ItemStack phoneStack = screen.getPhoneStack();
+
+        String carrierText = PhoneData.hasSim(phoneStack)
+                ? PhoneData.getCarrier(phoneStack)
+                : "Sin SIM";
+
         guiGraphics.drawString(
                 screen.getPhoneFont(),
-                "SIM",
+                carrierText,
                 phoneX + STATUS_LEFT_PADDING,
                 phoneY + STATUS_TOP_PADDING,
                 COLOR_WHITE,
                 false
         );
 
-        String networkText = "4G";
-        int networkX = innerRight - screen.getPhoneFont().width(networkText) - 26;
+        String networkText = PhoneData.hasSim(phoneStack) ? "4G" : "";
+        if (!networkText.isBlank()) {
+            int networkX = innerRight - screen.getPhoneFont().width(networkText) - 26;
 
-        guiGraphics.drawString(
-                screen.getPhoneFont(),
-                networkText,
-                networkX,
-                phoneY + STATUS_TOP_PADDING,
-                COLOR_WHITE,
-                false
-        );
+            guiGraphics.drawString(
+                    screen.getPhoneFont(),
+                    networkText,
+                    networkX,
+                    phoneY + STATUS_TOP_PADDING,
+                    COLOR_WHITE,
+                    false
+            );
+        }
 
         drawBattery(guiGraphics, innerRight - 18, phoneY + STATUS_TOP_PADDING, BATTERY_WIDTH, BATTERY_HEIGHT);
     }
