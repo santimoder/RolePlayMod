@@ -77,6 +77,22 @@ public class ModNetwork {
 
         INVENTORY_CHANNEL.registerMessage(
                 nextInvId(),
+                QuickMoveInventorySlotPacket.class,
+                QuickMoveInventorySlotPacket::encode,
+                QuickMoveInventorySlotPacket::decode,
+                QuickMoveInventorySlotPacket::handle
+        );
+
+        INVENTORY_CHANNEL.registerMessage(
+                nextInvId(),
+                QuickMoveGroundItemPacket.class,
+                QuickMoveGroundItemPacket::encode,
+                QuickMoveGroundItemPacket::decode,
+                QuickMoveGroundItemPacket::handle
+        );
+
+        INVENTORY_CHANNEL.registerMessage(
+                nextInvId(),
                 RequestInventoryPacket.class,
                 RequestInventoryPacket::encode,
                 RequestInventoryPacket::decode,

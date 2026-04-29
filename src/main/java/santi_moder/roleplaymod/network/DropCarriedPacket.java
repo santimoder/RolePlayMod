@@ -11,14 +11,22 @@ import java.util.function.Supplier;
 
 public class DropCarriedPacket {
 
+    private final boolean fullStack;
+
     public DropCarriedPacket() {
+        this(true);
+    }
+
+    public DropCarriedPacket(boolean fullStack) {
+        this.fullStack = fullStack;
     }
 
     public static void encode(DropCarriedPacket pkt, FriendlyByteBuf buf) {
+        buf.writeBoolean(pkt.fullStack);
     }
 
     public static DropCarriedPacket decode(FriendlyByteBuf buf) {
-        return new DropCarriedPacket();
+        return new DropCarriedPacket(buf.readBoolean());
     }
 
     public static void handle(DropCarriedPacket pkt, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -31,8 +39,20 @@ public class DropCarriedPacket {
             ItemStack carried = player.containerMenu.getCarried().copy();
             if (carried.isEmpty()) return;
 
-            player.containerMenu.setCarried(ItemStack.EMPTY);
-            player.drop(carried, false);
+            ItemStack toDrop;
+
+            if (pkt.fullStack || carried.getCount() <= 1) {
+                toDrop = carried.copy();
+                player.containerMenu.setCarried(ItemStack.EMPTY);
+            } else {
+                toDrop = carried.copy();
+                toDrop.setCount(1);
+
+                carried.shrink(1);
+                player.containerMenu.setCarried(carried.isEmpty() ? ItemStack.EMPTY : carried.copy());
+            }
+
+            player.drop(toDrop, false);
 
             player.getInventory().setChanged();
             player.containerMenu.broadcastChanges();

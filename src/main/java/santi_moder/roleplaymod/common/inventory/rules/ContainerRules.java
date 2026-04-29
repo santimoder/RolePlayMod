@@ -1,6 +1,7 @@
 package santi_moder.roleplaymod.common.inventory.rules;
 
 import net.minecraft.world.item.ItemStack;
+import santi_moder.roleplaymod.common.inventory.item.StorageItem;
 
 public class ContainerRules {
 
@@ -75,30 +76,42 @@ public class ContainerRules {
     }
 
     private static boolean canInsertPants(int slot, ItemStack stack, InventoryView inventory) {
-        return isSizeAllowed(ItemSize.SMALL, stack);
+        return !isContainerItem(stack)
+                && isSizeAllowed(ItemSize.SMALL, stack);
     }
 
     private static boolean canInsertJacket(int slot, ItemStack stack, InventoryView inventory) {
-        return isSizeAllowed(ItemSize.SMALL, stack);
+        return !isContainerItem(stack)
+                && isSizeAllowed(ItemSize.SMALL, stack);
     }
 
     private static boolean canInsertBackpackSmall(int slot, ItemStack stack, InventoryView inventory) {
+        if (isContainerItem(stack)) return false;
+
         ItemSize size = ItemMetadataResolver.getSize(stack);
         return size == ItemSize.SMALL || size == ItemSize.MEDIUM;
     }
 
     private static boolean canInsertBackpackMedium(int slot, ItemStack stack, InventoryView inventory) {
+        if (isContainerItem(stack)) return false;
+
         ItemSize size = ItemMetadataResolver.getSize(stack);
         return size == ItemSize.SMALL || size == ItemSize.MEDIUM;
     }
 
     private static boolean canInsertBackpackLarge(int slot, ItemStack stack, InventoryView inventory) {
+        if (isContainerItem(stack)) return false;
+
         ItemSize size = ItemMetadataResolver.getSize(stack);
         return size == ItemSize.SMALL || size == ItemSize.MEDIUM;
     }
 
     private static boolean canInsertBackpackHuge(int slot, ItemStack stack, InventoryView inventory) {
-        return true;
+        return !isContainerItem(stack);
+    }
+
+    private static boolean isContainerItem(ItemStack stack) {
+        return stack.getItem() instanceof StorageItem;
     }
 
     private static boolean isSizeAllowed(ItemSize maxAllowed, ItemStack stack) {
@@ -123,6 +136,7 @@ public class ContainerRules {
                 return true;
             }
         }
+
         return false;
     }
 }

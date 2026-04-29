@@ -10,19 +10,26 @@ import net.minecraftforge.fml.common.Mod;
 import santi_moder.roleplaymod.RolePlayMod;
 import santi_moder.roleplaymod.client.input.ModKeyBindings;
 import santi_moder.roleplaymod.client.phone.ClientPhoneOpener;
+import santi_moder.roleplaymod.client.radio.voice.RadioVoiceChatPttState;
+import santi_moder.roleplaymod.client.radio.voice.SimpleVoiceChatPttBridge;
 import santi_moder.roleplaymod.client.screen.BodyStatusScreen;
 import santi_moder.roleplaymod.client.screen.RPInventoryScreen;
-import santi_moder.roleplaymod.item.ModItems;
 import santi_moder.roleplaymod.item.PhoneItem;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.QuickAccessHotbarChangedPacket;
 import santi_moder.roleplaymod.network.QuickAccessTogglePacket;
 import santi_moder.roleplaymod.network.RequestInventoryPacket;
+import santi_moder.roleplaymod.network.radio.StartRadioTransmissionPacket;
+import santi_moder.roleplaymod.network.radio.StopRadioTransmissionPacket;
+import santi_moder.roleplaymod.network.radio.ToggleRadioPacket;
+import santi_moder.roleplaymod.network.radio.IncreaseRadioFrequencyPacket;
+import santi_moder.roleplaymod.network.radio.DecreaseRadioFrequencyPacket;
 
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID, value = Dist.CLIENT)
 public class ClientKeyHandler {
 
     private static int lastSelectedSlot = -1;
+    private static boolean radioPttDown = false;
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
@@ -31,12 +38,45 @@ public class ClientKeyHandler {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
+        // ================= RADIO PTT =================
+        boolean radioPressed = ModKeyBindings.RADIO_PTT.isDown();
+
+        if (mc.screen == null && radioPressed && !radioPttDown) {
+            radioPttDown = true;
+
+            RadioVoiceChatPttState.setRadioPttDown(true);
+            ModNetwork.sendInventoryToServer(new StartRadioTransmissionPacket());
+        }
+
+        if ((!radioPressed || mc.screen != null) && radioPttDown) {
+            radioPttDown = false;
+
+            RadioVoiceChatPttState.setRadioPttDown(false);
+            ModNetwork.sendInventoryToServer(new StopRadioTransmissionPacket());        }
+
+        // ================= RADIO CONTROLES =================
+        if (mc.screen == null) {
+            while (ModKeyBindings.TOGGLE_RADIO.consumeClick()) {
+                ModNetwork.sendInventoryToServer(new ToggleRadioPacket());
+            }
+
+            while (ModKeyBindings.RADIO_FREQUENCY_UP.consumeClick()) {
+                ModNetwork.sendInventoryToServer(new IncreaseRadioFrequencyPacket());
+            }
+
+            while (ModKeyBindings.RADIO_FREQUENCY_DOWN.consumeClick()) {
+                ModNetwork.sendInventoryToServer(new DecreaseRadioFrequencyPacket());
+            }
+        }
+
+        // ================= BODY STATUS =================
         while (ModKeyBindings.OPEN_BODY_STATUS.consumeClick()) {
             if (mc.screen == null) {
                 mc.setScreen(new BodyStatusScreen());
             }
         }
 
+        // ================= INVENTARIO =================
         while (ModKeyBindings.OPEN_RP_INVENTORY.consumeClick()) {
             if (mc.screen != null) return;
 
@@ -44,6 +84,7 @@ public class ClientKeyHandler {
             mc.setScreen(new RPInventoryScreen());
         }
 
+        // ================= TELEFONO =================
         while (ModKeyBindings.OPEN_PHONE.consumeClick()) {
             ItemStack mainHand = mc.player.getMainHandItem();
             ItemStack offHand = mc.player.getOffhandItem();
@@ -59,6 +100,7 @@ public class ClientKeyHandler {
             }
         }
 
+        // ================= QUICK ACCESS =================
         if (mc.screen == null) {
             while (ModKeyBindings.QUICK_PANTS_PISTOL.consumeClick()) {
                 if (mc.player.isShiftKeyDown()) {
@@ -67,6 +109,7 @@ public class ClientKeyHandler {
             }
         }
 
+        // ================= HOTBAR =================
         int currentSelected = mc.player.getInventory().selected;
         if (currentSelected != lastSelectedSlot) {
             lastSelectedSlot = currentSelected;

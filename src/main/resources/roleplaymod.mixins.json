@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "santi_moder.roleplaymod.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "voicechat.PTTKeyHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

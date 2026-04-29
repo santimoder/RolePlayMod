@@ -114,14 +114,15 @@ public class RPInventoryScreen extends Screen {
         this.renderBackground(graphics);
 
         EquipmentInventory equipment = getEquipment();
-        if (equipmentChanged(equipment)) {
-            refreshSlots();
-            cacheEquipment(equipment);
-        }
 
         if (equipment == null) {
             super.render(graphics, mouseX, mouseY, partialTicks);
             return;
+        }
+
+        if (equipmentChanged(equipment)) {
+            refreshSlots();
+            cacheEquipment(equipment);
         }
 
         int x = (this.width - GUI_WIDTH) / 2;
@@ -132,19 +133,21 @@ public class RPInventoryScreen extends Screen {
 
         renderClothingSlots(graphics, x, y);
         renderSlots(graphics, mouseX, mouseY);
+
         if (this.minecraft != null && this.minecraft.player != null) {
             long now = System.currentTimeMillis();
-            if (now - lastGroundRefresh >= 150) { // cada 150 ms
+            if (now - lastGroundRefresh >= 300) {
                 groundItems.clear();
                 groundItems.addAll(GroundItemLogic.scanGroundItems(this.minecraft.player));
                 lastGroundRefresh = now;
             }
         }
+
         renderGroundItems(graphics, x + GUI_WIDTH + 10, y + 20);
 
         super.render(graphics, mouseX, mouseY, partialTicks);
 
-        ItemStack carried = santi_moder.roleplaymod.client.data.ClientInventoryData.getCarried();
+        ItemStack carried = ClientInventoryData.getCarried();
 
         if (!carried.isEmpty()) {
             graphics.renderItem(carried, mouseX - 8, mouseY - 8);
@@ -390,11 +393,15 @@ public class RPInventoryScreen extends Screen {
 
     private InventorySlot getHoveredSlot(double mouseX, double mouseY) {
         for (InventorySlot slot : slots) {
-            if (mouseX >= slot.getX() && mouseX <= slot.getX() + SLOT_SIZE
-                    && mouseY >= slot.getY() && mouseY <= slot.getY() + SLOT_SIZE) {
+            int x = slot.getX() + SLOT_ADJUST_X;
+            int y = slot.getY() + SLOT_ADJUST_Y;
+
+            if (mouseX >= x && mouseX <= x + SLOT_SIZE
+                    && mouseY >= y && mouseY <= y + SLOT_SIZE) {
                 return slot;
             }
         }
+
         return null;
     }
 
@@ -402,6 +409,13 @@ public class RPInventoryScreen extends Screen {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
 
         if (keyCode == GLFW.GLFW_KEY_Q) {
+            boolean fullStack = Screen.hasControlDown();
+
+            if (!ClientInventoryData.getCarried().isEmpty()) {
+                ModNetwork.INVENTORY_CHANNEL.sendToServer(new DropCarriedPacket(fullStack));
+                return true;
+            }
+
             InventorySlot hovered = getHoveredSlot(lastMouseX, lastMouseY);
 
             if (hovered != null && hovered.getType() != null) {
@@ -410,14 +424,10 @@ public class RPInventoryScreen extends Screen {
                                 hovered.getIndex(),
                                 hovered.getType().ordinal(),
                                 hovered.getStorageIndex(),
-                                hovered.getVanillaIndex()
+                                hovered.getVanillaIndex(),
+                                fullStack
                         )
                 );
-                return true;
-            }
-
-            if (!ClientInventoryData.getCarried().isEmpty()) {
-                ModNetwork.INVENTORY_CHANNEL.sendToServer(new DropCarriedPacket());
                 return true;
             }
         }
@@ -443,19 +453,17 @@ public class RPInventoryScreen extends Screen {
 
                 if (slot.getType() != null) {
 
-                    ItemStack predicted = santi_moder.roleplaymod.common.inventory.logic.InventoryInteraction.clickSlot(
-                            slot,
-                            getEquipment(),
-                            carried,
-                            mc.player,
-                            button
-                    );
-
-                    // Mantener ambas fuentes sincronizadas
-                    mc.player.containerMenu.setCarried(predicted.copy());
-                    santi_moder.roleplaymod.client.data.ClientInventoryData.setCarried(predicted.copy());
-
-                    refreshSlots();
+                    if (Screen.hasShiftDown()) {
+                        ModNetwork.INVENTORY_CHANNEL.sendToServer(
+                                new QuickMoveInventorySlotPacket(
+                                        slot.getIndex(),
+                                        slot.getType().ordinal(),
+                                        slot.getStorageIndex(),
+                                        slot.getVanillaIndex()
+                                )
+                        );
+                        return true;
+                    }
 
                     ModNetwork.INVENTORY_CHANNEL.sendToServer(
                             new InventoryClickPacket(
@@ -467,6 +475,7 @@ public class RPInventoryScreen extends Screen {
                             )
                     );
                 }
+
                 return true;
             }
         }
@@ -486,9 +495,15 @@ public class RPInventoryScreen extends Screen {
                 ItemEntity entity = groundItems.get(i);
 
                 if (entity != null && entity.isAlive()) {
-                    ModNetwork.INVENTORY_CHANNEL.sendToServer(
-                            new GroundItemClickPacket(entity.getId())
-                    );
+                    if (Screen.hasShiftDown()) {
+                        ModNetwork.INVENTORY_CHANNEL.sendToServer(
+                                new QuickMoveGroundItemPacket(entity.getId())
+                        );
+                    } else {
+                        ModNetwork.INVENTORY_CHANNEL.sendToServer(
+                                new GroundItemClickPacket(entity.getId())
+                        );
+                    }
                 }
 
                 return true;
