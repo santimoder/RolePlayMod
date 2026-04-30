@@ -1,0 +1,123 @@
+package santi_moder.roleplaymod.server.medical;
+
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.network.PacketDistributor;
+import santi_moder.roleplaymod.RolePlayMod;
+import santi_moder.roleplaymod.common.inventory.EquipmentInventory;
+import santi_moder.roleplaymod.common.inventory.item.ItemInventory;
+import santi_moder.roleplaymod.common.player.BleedingType;
+import santi_moder.roleplaymod.common.player.BodyPart;
+import santi_moder.roleplaymod.item.ModItems;
+import santi_moder.roleplaymod.network.ModNetwork;
+import santi_moder.roleplaymod.network.SyncPlayerDataPacket;
+import santi_moder.roleplaymod.server.data.PlayerDataProvider;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.UUID;
+
+@Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID)
+public final class MedicalTreatmentHandler {
+
+    private static final int TREATMENT_TICKS = 60;
+    private static final int BACKPACK_EQUIPMENT_SLOT = 1;
+
+    private static final Map<UUID, PendingTreatment> PENDING = new HashMap<>();
+
+    private MedicalTreatmentHandler() {
+    }
+
+    public static void startBandageTreatment(ServerPlayer player, int backpackSlot, BodyPart bodyPart) {
+        if (player == null || bodyPart == null) return;
+        if (player.isDeadOrDying()) return;
+
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            if (data.isInconsciente()) return;
+            if (data.getBleeding(bodyPart) == BleedingType.NONE) return;
+
+            EquipmentInventory equipment = data.getEquipmentInventory();
+            ItemStack backpack = equipment.getItem(BACKPACK_EQUIPMENT_SLOT);
+
+            if (backpack.isEmpty()) return;
+
+            ItemStack selected = ItemInventory.getItem(backpack, backpackSlot);
+
+            if (selected.isEmpty()) return;
+            if (!selected.is(ModItems.BANDAGE.get())) return;
+
+            PENDING.put(
+                    player.getUUID(),
+                    new PendingTreatment(backpackSlot, bodyPart, TREATMENT_TICKS)
+            );
+        });
+    }
+
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        if (!(event.player instanceof ServerPlayer player)) return;
+        if (player.level().isClientSide) return;
+
+        PendingTreatment treatment = PENDING.get(player.getUUID());
+        if (treatment == null) return;
+
+        if (player.isDeadOrDying()) {
+            PENDING.remove(player.getUUID());
+            return;
+        }
+
+        treatment.ticksLeft--;
+
+        if (treatment.ticksLeft > 0) return;
+
+        PENDING.remove(player.getUUID());
+        finishBandageTreatment(player, treatment);
+    }
+
+    private static void finishBandageTreatment(ServerPlayer player, PendingTreatment treatment) {
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            if (data.getBleeding(treatment.bodyPart) == BleedingType.NONE) return;
+
+            EquipmentInventory equipment = data.getEquipmentInventory();
+            ItemStack backpack = equipment.getItem(BACKPACK_EQUIPMENT_SLOT);
+
+            if (backpack.isEmpty()) return;
+
+            ItemStack bandage = ItemInventory.getItem(backpack, treatment.backpackSlot);
+
+            if (bandage.isEmpty()) return;
+            if (!bandage.is(ModItems.BANDAGE.get())) return;
+
+            bandage.shrink(1);
+            ItemInventory.setItem(
+                    backpack,
+                    treatment.backpackSlot,
+                    bandage.isEmpty() ? ItemStack.EMPTY : bandage
+            );
+
+            data.setBleeding(treatment.bodyPart, BleedingType.NONE);
+
+            ModNetwork.STATS_CHANNEL.send(
+                    PacketDistributor.PLAYER.with(() -> player),
+                    new SyncPlayerDataPacket(data)
+            );
+        });
+    }
+
+    private static final class PendingTreatment {
+        private final int backpackSlot;
+        private final BodyPart bodyPart;
+        private int ticksLeft;
+
+        private PendingTreatment(int backpackSlot, BodyPart bodyPart, int ticksLeft) {
+            this.backpackSlot = backpackSlot;
+            this.bodyPart = bodyPart;
+            this.ticksLeft = ticksLeft;
+        }
+    }
+}

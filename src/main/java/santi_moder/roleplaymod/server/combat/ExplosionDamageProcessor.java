@@ -5,6 +5,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import santi_moder.roleplaymod.common.player.BleedingType;
 import santi_moder.roleplaymod.common.player.BodyPart;
 import santi_moder.roleplaymod.common.player.hitbox.BodyHitbox;
 import santi_moder.roleplaymod.common.player.hitbox.BodyHitboxResolver;
@@ -22,32 +23,44 @@ public final class ExplosionDamageProcessor {
             Vec3 origin = explosionPos != null ? explosionPos : target.position();
 
             double distance = target.position().distanceTo(origin);
-            double radius = Math.max(4.0D, Math.min(20.0D, rawDamage * 2.0D));
+            double radius = Math.max(5.0D, Math.min(24.0D, rawDamage * 2.25D));
             double distanceFactor = 1.0D - Math.min(1.0D, distance / radius);
 
-            if (distanceFactor <= 0.05D) return;
+            if (distanceFactor <= 0.05D) {
+                DamageProcessor.finishDamage(target, data);
+                return;
+            }
 
-            int bloodLoss = 0;
+            int totalBloodLoss = 0;
+            int totalShock = 0;
 
             for (BodyHitbox hitbox : BodyHitboxResolver.createHitboxes(target)) {
                 BodyPart part = hitbox.part();
+
                 double exposure = calculateExposure(target, origin, hitbox.box());
 
                 if (exposure <= 0.05D) continue;
 
-                int damage = Math.max(1, (int) Math.ceil(
+                int partDamage = Math.max(1, (int) Math.ceil(
                         rawDamage * distanceFactor * exposure * multiplier(part)
                 ));
 
-                data.damageBodyPart(part, damage);
+                data.damageBodyPart(part, partDamage);
 
-                bloodLoss += switch (part) {
-                    case HEAD, TORSO -> Math.max(1, damage / 2);
-                    case LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG -> Math.max(0, damage / 3);
+                if (partDamage >= 4) {
+                    data.applyBleed(part, partDamage >= 8 ? BleedingType.HEAVY : BleedingType.MEDIUM);
+                }
+
+                totalBloodLoss += switch (part) {
+                    case HEAD, TORSO -> Math.max(1, partDamage / 2);
+                    case LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG -> Math.max(0, partDamage / 3);
                 };
+
+                totalShock += Math.max(1, partDamage * shockMultiplier(part));
             }
 
-            data.setSangre(data.getSangre() - bloodLoss);
+            data.setSangre(data.getSangre() - totalBloodLoss);
+            data.addShock(Math.min(75, totalShock));
 
             DamageProcessor.finishDamage(target, data);
         });
@@ -76,10 +89,18 @@ public final class ExplosionDamageProcessor {
 
     private static double multiplier(BodyPart part) {
         return switch (part) {
-            case HEAD -> 0.90D;
-            case TORSO -> 1.35D;
+            case HEAD -> 0.95D;
+            case TORSO -> 1.40D;
             case LEFT_ARM, RIGHT_ARM -> 0.70D;
-            case LEFT_LEG, RIGHT_LEG -> 0.85D;
+            case LEFT_LEG, RIGHT_LEG -> 0.90D;
+        };
+    }
+
+    private static int shockMultiplier(BodyPart part) {
+        return switch (part) {
+            case HEAD -> 4;
+            case TORSO -> 3;
+            case LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG -> 2;
         };
     }
 }

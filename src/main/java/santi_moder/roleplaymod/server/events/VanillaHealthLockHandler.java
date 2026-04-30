@@ -26,6 +26,8 @@ public final class VanillaHealthLockHandler {
         if (!(event.player instanceof ServerPlayer player)) return;
         if (player.isDeadOrDying()) return;
 
+        if (player.getHealth() <= 0.0F || player.isDeadOrDying()) return;
+
         if (player.getHealth() < player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
         }

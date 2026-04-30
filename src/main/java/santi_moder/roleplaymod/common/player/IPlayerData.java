@@ -8,7 +8,6 @@ import santi_moder.roleplaymod.common.inventory.EquipmentInventory;
 @AutoRegisterCapability
 public interface IPlayerData {
 
-    // ===================== STATS BASICOS =====================
     int getSangre();
     void setSangre(int value);
 
@@ -24,12 +23,18 @@ public interface IPlayerData {
     int getSueno();
     void setSueno(int value);
 
+    int getShock();
+    void setShock(int value);
+    void addShock(int amount);
+    void tickShockRecovery();
+
     boolean isInconsciente();
     void setInconsciente(boolean value);
 
     int getContadorInconsciencias();
     void incrementarInconsciencias();
     void resetInconsciencias();
+
     void resetPhysicalStats();
     void resetAfterDeath();
 
@@ -41,6 +46,7 @@ public interface IPlayerData {
     void tickStaminaCooldown();
 
     boolean canRegenerateStamina();
+
     boolean isStaminaExhausted();
     void setStaminaExhausted(boolean value);
 
@@ -48,7 +54,6 @@ public interface IPlayerData {
     boolean shouldConsumeFoodForStamina();
     void consumeStaminaRegenBuffer();
 
-    // ===================== PARTES DEL CUERPO =====================
     int getBodyHp(BodyPart part);
     void setBodyHp(BodyPart part, int value);
 
@@ -56,8 +61,11 @@ public interface IPlayerData {
     void setBleeding(BodyPart part, BleedingType type);
 
     void damageBodyPart(BodyPart part, int amount);
+
     void tickBleeding();
+
     BleedingType getWorstBleeding();
+
     void applyBleed(BodyPart part, BleedingType type);
 
     void applyBodyPartEffects();

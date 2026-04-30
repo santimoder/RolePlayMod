@@ -25,17 +25,18 @@ public final class DamageProcessor {
         if (target.level().isClientSide) return;
 
         target.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            int damage = Math.max(1, (int) Math.ceil(rawDamage));
+            DamageSeverity severity = DamageSeverity.fromDamage(rawDamage);
+            int damage = scaleDamage(type, rawDamage, severity);
 
             switch (type) {
-                case PROJECTILE -> applyProjectileDamage(data, hitPart, damage);
-                case MELEE -> applyMeleeDamage(data, hitPart, damage);
-                case FALL -> applyFallDamage(data, damage);
-                case FIRE -> applyFireDamage(data, damage);
-                case DROWN -> applyDrownDamage(data, damage);
+                case PROJECTILE -> applyProjectileDamage(data, hitPart, damage, severity);
+                case MELEE -> applyMeleeDamage(data, hitPart, damage, severity);
+                case FALL -> applyFallDamage(data, damage, severity);
+                case FIRE -> applyFireDamage(data, damage, severity);
+                case DROWN -> applyDrownDamage(data, damage, severity);
                 case EXPLOSION -> ExplosionDamageProcessor.applyExplosionTrauma(target, sourcePosition, rawDamage);
                 case VOID -> applyVoidDamage(data);
-                case GENERIC -> applyMeleeDamage(data, hitPart, damage);
+                case GENERIC -> applyMeleeDamage(data, hitPart, damage, severity);
             }
 
             if (type != CustomDamageType.EXPLOSION) {
@@ -46,7 +47,15 @@ public final class DamageProcessor {
 
     public static void finishDamage(ServerPlayer target, IPlayerData data) {
         data.applyBodyPartEffects();
-        MedicalUtils.checkAndKill(target, data);
+
+        if (MedicalUtils.checkAndKill(target, data)) {
+            return;
+        }
+
+        if (MedicalUtils.shouldBeUnconscious(data) && !data.isInconsciente()) {
+            data.setInconsciente(true);
+            data.incrementarInconsciencias();
+        }
 
         if (!target.isDeadOrDying()) {
             target.setHealth(target.getMaxHealth());
@@ -58,84 +67,126 @@ public final class DamageProcessor {
         );
     }
 
-    private static void applyProjectileDamage(IPlayerData data, BodyPart hitPart, int damage) {
+    private static int scaleDamage(CustomDamageType type, float rawDamage, DamageSeverity severity) {
+        float multiplier = switch (type) {
+            case PROJECTILE -> switch (severity) {
+                case LIGHT -> 0.75F;
+                case MEDIUM -> 1.00F;
+                case HEAVY -> 1.25F;
+                case CRITICAL -> 1.50F;
+            };
+            case MELEE -> switch (severity) {
+                case LIGHT -> 0.50F;
+                case MEDIUM -> 0.75F;
+                case HEAVY -> 1.00F;
+                case CRITICAL -> 1.20F;
+            };
+            case FALL -> 0.85F;
+            case FIRE -> 0.55F;
+            case DROWN -> 0.65F;
+            case EXPLOSION -> 1.00F;
+            case VOID -> 100.0F;
+            case GENERIC -> 0.75F;
+        };
+
+        return Math.max(1, (int) Math.ceil(rawDamage * multiplier));
+    }
+
+    private static void applyProjectileDamage(IPlayerData data, BodyPart hitPart, int damage, DamageSeverity severity) {
+        int shock = shockFor(severity);
+
         switch (hitPart) {
             case HEAD -> {
                 data.damageBodyPart(BodyPart.HEAD, damage * 2);
                 data.setSangre(data.getSangre() - damage * 2);
+                data.addShock(shock + 25);
             }
             case TORSO -> {
                 data.damageBodyPart(BodyPart.TORSO, damage);
                 data.setSangre(data.getSangre() - Math.max(1, damage));
+                data.addShock(shock + 15);
             }
-            case LEFT_ARM -> {
-                data.damageBodyPart(BodyPart.LEFT_ARM, damage);
+            case LEFT_ARM, RIGHT_ARM -> {
+                data.damageBodyPart(hitPart, damage);
                 data.setSangre(data.getSangre() - Math.max(1, damage / 2));
+                data.addShock(shock);
             }
-            case RIGHT_ARM -> {
-                data.damageBodyPart(BodyPart.RIGHT_ARM, damage);
+            case LEFT_LEG, RIGHT_LEG -> {
+                data.damageBodyPart(hitPart, damage);
                 data.setSangre(data.getSangre() - Math.max(1, damage / 2));
+                data.addShock(shock + 5);
             }
-            case LEFT_LEG -> {
-                data.damageBodyPart(BodyPart.LEFT_LEG, Math.max(1, damage));
-                data.setSangre(data.getSangre() - Math.max(1, damage / 2));
-            }
-            case RIGHT_LEG -> {
-                data.damageBodyPart(BodyPart.RIGHT_LEG, Math.max(1, damage));
-                data.setSangre(data.getSangre() - Math.max(1, damage / 2));
-            }
+        }
+
+        if (severity == DamageSeverity.HEAVY || severity == DamageSeverity.CRITICAL) {
+            data.applyBleed(hitPart, severity == DamageSeverity.CRITICAL
+                    ? santi_moder.roleplaymod.common.player.BleedingType.HEAVY
+                    : santi_moder.roleplaymod.common.player.BleedingType.MEDIUM);
         }
     }
 
-    private static void applyMeleeDamage(IPlayerData data, BodyPart hitPart, int damage) {
+    private static void applyMeleeDamage(IPlayerData data, BodyPart hitPart, int damage, DamageSeverity severity) {
         data.damageBodyPart(hitPart, damage);
+        data.addShock(Math.max(2, shockFor(severity) / 2));
 
         if (hitPart == BodyPart.HEAD || hitPart == BodyPart.TORSO) {
-            data.setSangre(data.getSangre() - Math.max(1, damage / 2));
+            data.setSangre(data.getSangre() - Math.max(1, damage / 3));
         }
     }
 
-    private static void applyFallDamage(IPlayerData data, int damage) {
-        int legDamage = Math.max(1, damage);
-        int torsoDamage = Math.max(1, damage / 2);
-
-        data.damageBodyPart(BodyPart.LEFT_LEG, legDamage);
-        data.damageBodyPart(BodyPart.RIGHT_LEG, legDamage);
+    private static void applyFallDamage(IPlayerData data, int damage, DamageSeverity severity) {
+        data.damageBodyPart(BodyPart.LEFT_LEG, damage);
+        data.damageBodyPart(BodyPart.RIGHT_LEG, damage);
+        data.addShock(shockFor(severity) + damage);
 
         if (damage >= 5) {
-            data.damageBodyPart(BodyPart.TORSO, torsoDamage);
-            data.setSangre(data.getSangre() - Math.max(1, damage / 2));
+            data.damageBodyPart(BodyPart.TORSO, Math.max(1, damage / 2));
+            data.setSangre(data.getSangre() - Math.max(1, damage / 3));
         }
 
         if (damage >= 9) {
             data.damageBodyPart(BodyPart.HEAD, Math.max(1, damage / 3));
+            data.addShock(20);
         }
     }
 
-    private static void applyFireDamage(IPlayerData data, int damage) {
-        int burnDamage = Math.max(1, damage);
+    private static void applyFireDamage(IPlayerData data, int damage, DamageSeverity severity) {
+        int burn = Math.max(1, damage);
 
-        data.damageBodyPart(BodyPart.HEAD, Math.max(1, burnDamage / 2));
-        data.damageBodyPart(BodyPart.TORSO, burnDamage);
-        data.damageBodyPart(BodyPart.LEFT_ARM, Math.max(1, burnDamage / 2));
-        data.damageBodyPart(BodyPart.RIGHT_ARM, Math.max(1, burnDamage / 2));
-        data.damageBodyPart(BodyPart.LEFT_LEG, Math.max(1, burnDamage / 2));
-        data.damageBodyPart(BodyPart.RIGHT_LEG, Math.max(1, burnDamage / 2));
+        data.damageBodyPart(BodyPart.TORSO, burn);
+        data.damageBodyPart(BodyPart.HEAD, Math.max(1, burn / 2));
+        data.damageBodyPart(BodyPart.LEFT_ARM, Math.max(1, burn / 2));
+        data.damageBodyPart(BodyPart.RIGHT_ARM, Math.max(1, burn / 2));
+        data.damageBodyPart(BodyPart.LEFT_LEG, Math.max(1, burn / 2));
+        data.damageBodyPart(BodyPart.RIGHT_LEG, Math.max(1, burn / 2));
 
-        data.setSangre(data.getSangre() - Math.max(1, burnDamage / 2));
+        data.setSangre(data.getSangre() - Math.max(1, burn / 3));
+        data.addShock(Math.max(3, shockFor(severity) / 2));
     }
 
-    private static void applyDrownDamage(IPlayerData data, int damage) {
-        data.damageBodyPart(BodyPart.HEAD, Math.max(1, damage / 2));
+    private static void applyDrownDamage(IPlayerData data, int damage, DamageSeverity severity) {
         data.damageBodyPart(BodyPart.TORSO, damage);
+        data.damageBodyPart(BodyPart.HEAD, Math.max(1, damage / 2));
+
         data.setSangre(data.getSangre() - Math.max(1, damage));
+        data.addShock(shockFor(severity) + 10);
     }
 
     private static void applyVoidDamage(IPlayerData data) {
         data.setSangre(0);
+        data.setShock(100);
 
         for (BodyPart part : BodyPart.values()) {
             data.setBodyHp(part, 0);
         }
+    }
+
+    private static int shockFor(DamageSeverity severity) {
+        return switch (severity) {
+            case LIGHT -> 4;
+            case MEDIUM -> 12;
+            case HEAVY -> 25;
+            case CRITICAL -> 45;
+        };
     }
 }

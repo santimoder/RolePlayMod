@@ -52,6 +52,10 @@ public class ModItems {
             ITEMS.register("phone",
                     () -> new PhoneItem(new Item.Properties().stacksTo(1)));
 
+    public static final RegistryObject<Item> BANDAGE =
+            ITEMS.register("bandage",
+                    () -> new ItemBandage(new Item.Properties().stacksTo(16)));
+
     public static void register() {
         ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
     }

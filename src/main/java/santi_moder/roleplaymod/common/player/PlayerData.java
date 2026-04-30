@@ -8,55 +8,20 @@ import java.util.Map;
 
 public class PlayerData implements IPlayerData {
 
+    private static final int MAX_BODY_HP = 5;
+
     private final Map<BodyPart, Integer> bodyHp = new EnumMap<>(BodyPart.class);
     private final Map<BodyPart, BleedingType> bleedings = new EnumMap<>(BodyPart.class);
 
-    public PlayerData() {
-        for (BodyPart part : BodyPart.values()) {
-            bodyHp.put(part, 5);
-            bleedings.put(part, BleedingType.NONE);
-        }
-    }
-
-    public void damageBodyPart(BodyPart part, int amount) {
-        int hp = getBodyHp(part);
-        hp = Math.max(0, hp - amount);
-        setBodyHp(part, hp);
-
-        // Aplicar sangrado
-        if (hp <= 0) {
-            setBleeding(part, BleedingType.HEAVY);
-        } else if (hp <= 2) {
-            setBleeding(part, BleedingType.MEDIUM);
-        } else {
-            setBleeding(part, BleedingType.NONE);
-        }
-    }
-
-    public BleedingType getWorstBleeding() {
-        BleedingType worst = BleedingType.NONE;
-        for (BleedingType type : bleedings.values()) {
-            if (type.ordinal() > worst.ordinal()) worst = type;
-        }
-        return worst;
-    }
-
-    // =====================
-    // EFECTOS POR PARTES DEL CUERPO
-    // =====================
-
-    // Penalizaciones
-    private boolean canAttack = true;       // brazos
-    private boolean canSprint = true;       // piernas
-    private float staminaMultiplier = 1.0f; // torso (afecta regeneración y consumo)
-    private boolean visionBlurred = false;  // cabeza
-
+    private final EquipmentInventory equipmentInventory = new EquipmentInventory();
 
     private int sangre = 100;
     private int stamina = 100;
     private int sed = 100;
     private int fatiga = 0;
     private int sueno = 100;
+    private int shock = 0;
+
     private int staminaRegenBuffer = 0;
 
     private boolean inconsciente = false;
@@ -65,26 +30,42 @@ public class PlayerData implements IPlayerData {
     private boolean staminaExhausted = false;
     private int staminaRegenCooldown = 0;
 
+    private boolean canAttack = true;
+    private boolean canSprint = true;
+    private float staminaMultiplier = 1.0f;
+    private boolean visionBlurred = false;
+
+    public PlayerData() {
+        for (BodyPart part : BodyPart.values()) {
+            bodyHp.put(part, MAX_BODY_HP);
+            bleedings.put(part, BleedingType.NONE);
+        }
+    }
+
+    @Override
     public void resetPhysicalStats() {
         this.sangre = 80;
         this.stamina = 50;
         this.sed = 50;
         this.fatiga = 30;
         this.sueno = 50;
+        this.shock = 0;
         this.staminaRegenCooldown = 0;
         this.staminaExhausted = false;
+        this.staminaRegenBuffer = 0;
+
+        applyBodyPartEffects();
     }
 
     @Override
     public void resetAfterDeath() {
-        // Stats base al respawn
         this.sangre = 100;
         this.stamina = 100;
         this.sed = 100;
         this.fatiga = 0;
         this.sueno = 100;
+        this.shock = 0;
 
-        // Estado general
         this.inconsciente = false;
         this.contadorInconsciencias = 0;
         this.wasOnGround = true;
@@ -92,13 +73,11 @@ public class PlayerData implements IPlayerData {
         this.staminaRegenCooldown = 0;
         this.staminaRegenBuffer = 0;
 
-        // Partes del cuerpo
         for (BodyPart part : BodyPart.values()) {
-            bodyHp.put(part, 5);
+            bodyHp.put(part, MAX_BODY_HP);
             bleedings.put(part, BleedingType.NONE);
         }
 
-        // Penalizaciones / efectos derivados
         this.canAttack = true;
         this.canSprint = true;
         this.staminaMultiplier = 1.0f;
@@ -112,7 +91,7 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setSangre(int value) {
-        sangre = clamp(value);
+        sangre = clampPercent(value);
     }
 
     @Override
@@ -122,7 +101,7 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setStamina(int value) {
-        stamina = clamp(value);
+        stamina = clampPercent(value);
     }
 
     @Override
@@ -132,7 +111,7 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setSed(int value) {
-        sed = clamp(value);
+        sed = clampPercent(value);
     }
 
     @Override
@@ -142,7 +121,7 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setFatiga(int value) {
-        fatiga = clamp(value);
+        fatiga = clampPercent(value);
     }
 
     @Override
@@ -152,7 +131,44 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setSueno(int value) {
-        sueno = clamp(value);
+        sueno = clampPercent(value);
+    }
+
+    @Override
+    public int getShock() {
+        return shock;
+    }
+
+    @Override
+    public void setShock(int value) {
+        shock = clampPercent(value);
+    }
+
+    @Override
+    public void addShock(int amount) {
+        if (amount <= 0) return;
+        setShock(this.shock + amount);
+    }
+
+    @Override
+    public void tickShockRecovery() {
+        if (shock <= 0) return;
+
+        int recovery = 1;
+
+        if (sangre <= 25) {
+            recovery = 0;
+        } else if (sangre >= 70) {
+            recovery = 2;
+        }
+
+        if (getWorstBleeding() == BleedingType.HEAVY) {
+            recovery = Math.max(0, recovery - 1);
+        }
+
+        if (recovery > 0) {
+            setShock(shock - recovery);
+        }
     }
 
     @Override
@@ -180,6 +196,10 @@ public class PlayerData implements IPlayerData {
         contadorInconsciencias = 0;
     }
 
+    public void setContadorInconsciencias(int value) {
+        contadorInconsciencias = Math.max(0, value);
+    }
+
     @Override
     public boolean wasOnGround() {
         return wasOnGround;
@@ -187,8 +207,9 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setWasOnGround(boolean value) {
-        this.wasOnGround = value;
+        wasOnGround = value;
     }
+
     @Override
     public int getStaminaRegenCooldown() {
         return staminaRegenCooldown;
@@ -196,7 +217,7 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setStaminaRegenCooldown(int ticks) {
-        this.staminaRegenCooldown = Math.max(0, ticks);
+        staminaRegenCooldown = Math.max(0, ticks);
     }
 
     @Override
@@ -204,21 +225,6 @@ public class PlayerData implements IPlayerData {
         if (staminaRegenCooldown > 0) {
             staminaRegenCooldown--;
         }
-    }
-    public void setContadorInconsciencias(int value) {
-        this.contadorInconsciencias = value;
-    }
-
-    public void addStaminaRegenBuffer(int amount) {
-        staminaRegenBuffer += amount;
-    }
-
-    public boolean shouldConsumeFoodForStamina() {
-        return staminaRegenBuffer >= 20;
-    }
-
-    public void consumeStaminaRegenBuffer() {
-        staminaRegenBuffer -= 20;
     }
 
     @Override
@@ -233,122 +239,191 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setStaminaExhausted(boolean value) {
-        this.staminaExhausted = value;
+        staminaExhausted = value;
     }
 
-    // Serialización parcial de partes del cuerpo
-    public CompoundTag serializeBodyParts() {
-        CompoundTag tag = new CompoundTag();
-        for (BodyPart part : BodyPart.values()) {
-            tag.putInt(part.name(), getBodyHp(part));
-            tag.putInt(part.name() + "_bleeding", getBleeding(part).ordinal());
-        }
-        return tag;
+    @Override
+    public void addStaminaRegenBuffer(int amount) {
+        staminaRegenBuffer = Math.max(0, staminaRegenBuffer + amount);
     }
 
-    // Deserialización parcial de partes del cuerpo
-    public void deserializeBodyParts(CompoundTag tag) {
-        for (BodyPart part : BodyPart.values()) {
-            if (tag.contains(part.name())) {
-                setBodyHp(part, tag.getInt(part.name()));
-            }
-            if (tag.contains(part.name() + "_bleeding")) {
-                setBleeding(part, BleedingType.values()[tag.getInt(part.name() + "_bleeding")]);
-            }
-        }
+    @Override
+    public boolean shouldConsumeFoodForStamina() {
+        return staminaRegenBuffer >= 20;
     }
 
-    // ================= BODY PARTS =================
+    @Override
+    public void consumeStaminaRegenBuffer() {
+        staminaRegenBuffer = Math.max(0, staminaRegenBuffer - 20);
+    }
 
-    // Obtener HP de una parte específica
+    @Override
     public int getBodyHp(BodyPart part) {
-        return bodyHp.get(part);
+        return bodyHp.getOrDefault(part, MAX_BODY_HP);
     }
 
-    // Establecer HP de una parte específica
+    @Override
     public void setBodyHp(BodyPart part, int value) {
-        bodyHp.put(part, Math.max(0, Math.min(5, value))); // max HP por parte = 5
+        bodyHp.put(part, clampBodyHp(value));
     }
 
-    // Obtener tipo de sangrado de una parte
+    @Override
     public BleedingType getBleeding(BodyPart part) {
-        return bleedings.get(part);
+        return bleedings.getOrDefault(part, BleedingType.NONE);
     }
 
-    // Establecer sangrado de una parte
+    @Override
     public void setBleeding(BodyPart part, BleedingType type) {
-        bleedings.put(part, type);
+        bleedings.put(part, type == null ? BleedingType.NONE : type);
     }
 
+    @Override
+    public void damageBodyPart(BodyPart part, int amount) {
+        if (part == null || amount <= 0) return;
+
+        int newHp = Math.max(0, getBodyHp(part) - amount);
+        setBodyHp(part, newHp);
+
+        if (newHp <= 0) {
+            applyBleed(part, BleedingType.HEAVY);
+        } else if (newHp <= 2) {
+            applyBleed(part, BleedingType.MEDIUM);
+        }
+    }
+
+    @Override
     public void applyBleed(BodyPart part, BleedingType type) {
-        // solo aplica si el nuevo tipo es más grave
+        if (part == null || type == null) return;
+
         if (type.ordinal() > getBleeding(part).ordinal()) {
             setBleeding(part, type);
         }
     }
 
-    // ================= LOGICA DE SANGRADO =================
-
-    // Disminuye la sangre general según sangrado de todas las partes
+    @Override
     public void tickBleeding() {
         for (BleedingType type : bleedings.values()) {
-            sangre = clamp(sangre - type.getBloodLoss());
+            if (type != null && type != BleedingType.NONE) {
+                sangre = clampPercent(sangre - type.getBloodLoss());
+            }
         }
     }
 
-    // BRAZOS
-    public boolean canAttack() { return canAttack; }
-    public void setCanAttack(boolean value) { canAttack = value; }
+    @Override
+    public BleedingType getWorstBleeding() {
+        BleedingType worst = BleedingType.NONE;
 
-    // PIERNAS
-    public boolean canSprint() { return canSprint; }
-    public void setCanSprint(boolean value) { canSprint = value; }
+        for (BleedingType type : bleedings.values()) {
+            if (type != null && type.ordinal() > worst.ordinal()) {
+                worst = type;
+            }
+        }
 
-    // TORSO
-    public float getStaminaMultiplier() { return staminaMultiplier; }
-    public void setStaminaMultiplier(float value) { staminaMultiplier = value; }
-
-    // CABEZA
-    public boolean isVisionBlurred() { return visionBlurred; }
-    public void setVisionBlurred(boolean value) { visionBlurred = value; }
-
-    private int clamp(int value) {
-        return Math.max(0, Math.min(100, value));
+        return worst;
     }
 
-    private final EquipmentInventory equipmentInventory = new EquipmentInventory();
+    @Override
+    public void applyBodyPartEffects() {
+        canAttack = getBodyHp(BodyPart.LEFT_ARM) > 1 && getBodyHp(BodyPart.RIGHT_ARM) > 1;
+        canSprint = getBodyHp(BodyPart.LEFT_LEG) > 1 && getBodyHp(BodyPart.RIGHT_LEG) > 1;
 
+        staminaMultiplier = getBodyHp(BodyPart.TORSO) <= 1 ? 0.5f : 1.0f;
+
+        visionBlurred = getBodyHp(BodyPart.HEAD) <= 2 || shock >= 65 || sangre <= 35;
+
+        if (shock >= 75 || sangre <= 25) {
+            canSprint = false;
+        }
+
+        if (shock >= 85) {
+            canAttack = false;
+        }
+    }
+
+    @Override
+    public boolean canAttack() {
+        return canAttack;
+    }
+
+    @Override
+    public void setCanAttack(boolean value) {
+        canAttack = value;
+    }
+
+    @Override
+    public boolean canSprint() {
+        return canSprint;
+    }
+
+    @Override
+    public void setCanSprint(boolean value) {
+        canSprint = value;
+    }
+
+    @Override
+    public float getStaminaMultiplier() {
+        return staminaMultiplier;
+    }
+
+    @Override
+    public void setStaminaMultiplier(float value) {
+        staminaMultiplier = Math.max(0.1f, value);
+    }
+
+    @Override
+    public boolean isVisionBlurred() {
+        return visionBlurred;
+    }
+
+    @Override
+    public void setVisionBlurred(boolean value) {
+        visionBlurred = value;
+    }
+
+    @Override
+    public CompoundTag serializeBodyParts() {
+        CompoundTag tag = new CompoundTag();
+
+        for (BodyPart part : BodyPart.values()) {
+            tag.putInt(part.name(), getBodyHp(part));
+            tag.putInt(part.name() + "_bleeding", getBleeding(part).ordinal());
+        }
+
+        return tag;
+    }
+
+    @Override
+    public void deserializeBodyParts(CompoundTag tag) {
+        for (BodyPart part : BodyPart.values()) {
+            if (tag.contains(part.name())) {
+                setBodyHp(part, tag.getInt(part.name()));
+            }
+
+            if (tag.contains(part.name() + "_bleeding")) {
+                int ordinal = tag.getInt(part.name() + "_bleeding");
+                BleedingType[] values = BleedingType.values();
+
+                if (ordinal >= 0 && ordinal < values.length) {
+                    setBleeding(part, values[ordinal]);
+                } else {
+                    setBleeding(part, BleedingType.NONE);
+                }
+            }
+        }
+
+        applyBodyPartEffects();
+    }
+
+    @Override
     public EquipmentInventory getEquipmentInventory() {
         return equipmentInventory;
     }
 
-    public void applyBodyPartEffects() {
-        // BRAZOS
-        if (bodyHp.get(BodyPart.LEFT_ARM) <= 1 || bodyHp.get(BodyPart.RIGHT_ARM) <= 1) {
-            canAttack = false;
-        } else {
-            canAttack = true;
-        }
+    private int clampPercent(int value) {
+        return Math.max(0, Math.min(100, value));
+    }
 
-        // PIERNAS
-        if (bodyHp.get(BodyPart.LEFT_LEG) <= 1 || bodyHp.get(BodyPart.RIGHT_LEG) <= 1) {
-            canSprint = false;
-        } else {
-            canSprint = true;
-        }
-
-        // TORSO
-        if (bodyHp.get(BodyPart.TORSO) <= 1) {
-            staminaMultiplier = 0.5f;
-        } else {
-            staminaMultiplier = 1.0f;
-        }
-
-        // CABEZA
-        if (bodyHp.get(BodyPart.HEAD) <= 2) {
-            visionBlurred = true;
-        } else {
-            visionBlurred = false;
-        }
+    private int clampBodyHp(int value) {
+        return Math.max(0, Math.min(MAX_BODY_HP, value));
     }
 }

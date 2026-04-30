@@ -28,6 +28,16 @@ public class ClientPlayerData {
     public static int getStamina() { return stamina; }
     public static int getSed() { return sed; }
 
+    private static int shock;
+
+    public static int getShock() {
+        return shock;
+    }
+
+    public static void setShock(int value) {
+        shock = Math.max(0, Math.min(100, value));
+    }
+
     // ================= BODY PARTS (CLIENTE) =================
 
     public static int getBodyHp(BodyPart part) {

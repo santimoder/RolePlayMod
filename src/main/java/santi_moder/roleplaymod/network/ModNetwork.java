@@ -147,6 +147,30 @@ public class ModNetwork {
                 QuickAccessHotbarChangedPacket::handle
         );
 
+        STATS_CHANNEL.registerMessage(
+                nextInvId(),
+                StartTreatmentC2SPacket.class,
+                StartTreatmentC2SPacket::encode,
+                StartTreatmentC2SPacket::decode,
+                StartTreatmentC2SPacket::handle
+        );
+
+        STATS_CHANNEL.registerMessage(
+                nextInvId(),
+                RequestMedicalBackpackC2SPacket.class,
+                RequestMedicalBackpackC2SPacket::encode,
+                RequestMedicalBackpackC2SPacket::decode,
+                RequestMedicalBackpackC2SPacket::handle
+        );
+
+        STATS_CHANNEL.registerMessage(
+                nextInvId(),
+                SyncMedicalBackpackS2CPacket.class,
+                SyncMedicalBackpackS2CPacket::encode,
+                SyncMedicalBackpackS2CPacket::decode,
+                SyncMedicalBackpackS2CPacket::handle
+        );
+
         // RADIO
         INVENTORY_CHANNEL.registerMessage(
                 nextInvId(),
