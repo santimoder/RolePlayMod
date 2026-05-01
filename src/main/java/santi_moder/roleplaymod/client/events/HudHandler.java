@@ -6,6 +6,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import santi_moder.roleplaymod.client.data.ClientPlayerData;
@@ -35,13 +36,30 @@ public class HudHandler {
     // ===================== BLOQUEAR HUD VANILLA =====================
     @SubscribeEvent
     public static void onRenderPre(RenderGuiOverlayEvent.Pre event) {
-        event.setCanceled(true); // Cancelamos el HUD vanilla
-        renderHud(event.getGuiGraphics());
+        ResourceLocation id = event.getOverlay().id();
+
+        if (
+                id.equals(VanillaGuiOverlay.PLAYER_HEALTH.id()) ||
+                        id.equals(VanillaGuiOverlay.FOOD_LEVEL.id()) ||
+                        id.equals(VanillaGuiOverlay.ARMOR_LEVEL.id()) ||
+                        id.equals(VanillaGuiOverlay.AIR_LEVEL.id()) ||
+                        id.equals(VanillaGuiOverlay.EXPERIENCE_BAR.id()) ||
+                        id.equals(VanillaGuiOverlay.HOTBAR.id()) ||
+                        id.equals(VanillaGuiOverlay.CROSSHAIR.id()) ||
+                        id.equals(VanillaGuiOverlay.MOUNT_HEALTH.id()) ||
+                        id.equals(VanillaGuiOverlay.JUMP_BAR.id()) ||
+                        id.equals(VanillaGuiOverlay.POTION_ICONS.id()) ||
+                        id.equals(VanillaGuiOverlay.BOSS_EVENT_PROGRESS.id())
+        ) {
+            event.setCanceled(true);
+        }
     }
 
     // ===================== RENDER HUD PERSONALIZADO =====================
     @SubscribeEvent
     public static void onRenderPost(RenderGuiOverlayEvent.Post event) {
+        if (!event.getOverlay().id().equals(VanillaGuiOverlay.CHAT_PANEL.id())) return;
+
         renderHud(event.getGuiGraphics());
     }
 

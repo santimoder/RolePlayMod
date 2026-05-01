@@ -1,20 +1,29 @@
 package santi_moder.roleplaymod.client.events;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import santi_moder.roleplaymod.RolePlayMod;
 import santi_moder.roleplaymod.client.data.ClientDamageFeedback;
+import santi_moder.roleplaymod.client.effects.DamageShaderHandler;
+import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID, value = Dist.CLIENT)
 public final class MedicalVisualOverlayHandler {
 
     private MedicalVisualOverlayHandler() {
     }
+
+    private static final ResourceLocation BLOOD_VIGNETTE =
+            new ResourceLocation(RolePlayMod.MOD_ID, "textures/gui/blood_vignette.png");
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
@@ -23,6 +32,7 @@ public final class MedicalVisualOverlayHandler {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
 
+        DamageShaderHandler.tick();
         ClientDamageFeedback.tick();
     }
 
@@ -33,47 +43,86 @@ public final class MedicalVisualOverlayHandler {
 
         GuiGraphics g = event.getGuiGraphics();
 
-        renderDamageFlash(g);
         renderBleedingBorder(g);
+        renderUnconsciousBlur(g);
     }
 
-    private static void renderDamageFlash(GuiGraphics g) {
+    private static void renderUnconsciousBlur(GuiGraphics g) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            if (!data.isInconsciente() && !data.isVisionBlurred()) return;
+
+            int w = mc.getWindow().getGuiScaledWidth();
+            int h = mc.getWindow().getGuiScaledHeight();
+
+            int alpha = data.isInconsciente() ? 105 : 45;
+            int color = (alpha << 24) | 0x000000;
+
+            g.fill(0, 0, w, h, color);
+        });
+    }
+
+    @SubscribeEvent
+    public static void onCameraSetup(ViewportEvent.ComputeCameraAngles event) {
         if (!ClientDamageFeedback.hasDamageEffect()) return;
 
         int ticks = ClientDamageFeedback.getDamageTicks();
-        int alpha = Math.min(90, ticks * 7);
+        float intensity = ClientDamageFeedback.getDamageIntensity();
 
-        int color = (alpha << 24) | 0x551111;
+        float progress = ticks / 40.0F;
+        progress = Math.max(0.0F, Math.min(1.0F, progress));
 
-        int w = Minecraft.getInstance().getWindow().getGuiScaledWidth();
-        int h = Minecraft.getInstance().getWindow().getGuiScaledHeight();
+        double time = ticks * 0.35D;
 
-        int shakeX = ticks % 2 == 0 ? 2 : -2;
-        int shakeY = ticks % 3 == 0 ? 1 : -1;
+        double yawShake = Math.sin(time * 4.0D) * 0.65D * progress * intensity;
+        double pitchShake = Math.cos(time * 3.2D) * 0.45D * progress * intensity;
+        double rollShake = Math.sin(time * 5.0D) * 1.10D * progress * intensity;
 
-        g.pose().pushPose();
-        g.pose().translate(shakeX, shakeY, 0);
-        g.fill(0, 0, w, h, color);
-        g.pose().popPose();
+        event.setYaw((float) (event.getYaw() + yawShake));
+        event.setPitch((float) (event.getPitch() + pitchShake));
+        event.setRoll((float) (event.getRoll() + rollShake));
+    }
+
+    @SubscribeEvent
+    public static void onFov(ViewportEvent.ComputeFov event) {
+        if (!ClientDamageFeedback.hasDamageEffect()) return;
+
+        int ticks = ClientDamageFeedback.getDamageTicks();
+        float intensity = ClientDamageFeedback.getDamageIntensity();
+
+        float progress = ticks / 40.0F;
+        progress = Math.max(0.0F, Math.min(1.0F, progress));
+
+        double wave = Math.sin(ticks * 0.45D) * 2.0D * progress * intensity;
+
+        event.setFOV(event.getFOV() + wave);
     }
 
     private static void renderBleedingBorder(GuiGraphics g) {
         if (!ClientDamageFeedback.hasBleedingEffect()) return;
 
         int ticks = ClientDamageFeedback.getBleedingTicks();
+        float intensity = ClientDamageFeedback.getBleedingIntensity();
 
-        int pulse = (int) (Math.sin(ticks * 0.35D) * 25.0D) + 55;
-        int alpha = Math.max(25, Math.min(90, pulse));
-        int color = (alpha << 24) | 0x880000;
+        float progress = ticks / 60.0F;
+        double pulse = (Math.sin(ticks * 0.18D) + 1.0D) * 0.5D;
+
+        float alpha = (float) ((0.18F + 0.32F * pulse) * intensity * progress);
 
         int w = Minecraft.getInstance().getWindow().getGuiScaledWidth();
         int h = Minecraft.getInstance().getWindow().getGuiScaledHeight();
 
-        int border = 18;
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderTexture(0, BLOOD_VIGNETTE);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
 
-        g.fill(0, 0, w, border, color);
-        g.fill(0, h - border, w, h, color);
-        g.fill(0, 0, border, h, color);
-        g.fill(w - border, 0, w, h, color);
+        g.blit(BLOOD_VIGNETTE, 0, 0, 0, 0, w, h, w, h);
+
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.disableBlend();
     }
 }

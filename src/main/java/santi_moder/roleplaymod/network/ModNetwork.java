@@ -148,7 +148,7 @@ public class ModNetwork {
         );
 
         STATS_CHANNEL.registerMessage(
-                nextInvId(),
+                nextStatsId(),
                 StartTreatmentC2SPacket.class,
                 StartTreatmentC2SPacket::encode,
                 StartTreatmentC2SPacket::decode,
@@ -156,7 +156,7 @@ public class ModNetwork {
         );
 
         STATS_CHANNEL.registerMessage(
-                nextInvId(),
+                nextStatsId(),
                 RequestMedicalBackpackC2SPacket.class,
                 RequestMedicalBackpackC2SPacket::encode,
                 RequestMedicalBackpackC2SPacket::decode,
@@ -164,11 +164,20 @@ public class ModNetwork {
         );
 
         STATS_CHANNEL.registerMessage(
-                nextInvId(),
+                nextStatsId(),
                 SyncMedicalBackpackS2CPacket.class,
                 SyncMedicalBackpackS2CPacket::encode,
                 SyncMedicalBackpackS2CPacket::decode,
                 SyncMedicalBackpackS2CPacket::handle
+        );
+
+        STATS_CHANNEL.registerMessage(
+                nextStatsId(),
+                MedicalEffectS2CPacket.class,
+                MedicalEffectS2CPacket::encode,
+                MedicalEffectS2CPacket::decode,
+                MedicalEffectS2CPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT)
         );
 
         // RADIO

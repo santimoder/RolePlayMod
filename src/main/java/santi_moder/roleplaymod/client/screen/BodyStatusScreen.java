@@ -112,27 +112,27 @@ public class BodyStatusScreen extends Screen {
     public void tick() {
         super.tick();
 
-        if (!diagnosing || diagnosed) return;
+        if (diagnosing && !diagnosed) {
+            diagnosisTicks++;
 
-        diagnosisTicks++;
+            if (diagnosisTicks >= DIAGNOSIS_TICKS_REQUIRED) {
+                diagnosing = false;
+                diagnosed = true;
+                diagnosisTicks = DIAGNOSIS_TICKS_REQUIRED;
 
-        if (diagnosisTicks >= DIAGNOSIS_TICKS_REQUIRED) {
-            diagnosing = false;
-            diagnosed = true;
-            diagnosisTicks = DIAGNOSIS_TICKS_REQUIRED;
+                if (diagnoseButton != null) {
+                    diagnoseButton.visible = false;
+                    diagnoseButton.active = false;
+                }
 
-            if (diagnoseButton != null) {
-                diagnoseButton.visible = false;
-                diagnoseButton.active = false;
+                if (treatButton != null) {
+                    treatButton.visible = true;
+                    treatButton.active = false;
+                    treatButton.setMessage(Component.literal("Tratar"));
+                }
+
+                ModNetwork.STATS_CHANNEL.sendToServer(new RequestMedicalBackpackC2SPacket());
             }
-
-            if (treatButton != null) {
-                treatButton.visible = true;
-                treatButton.active = false;
-                treatButton.setMessage(Component.literal("Tratar"));
-            }
-
-            ModNetwork.STATS_CHANNEL.sendToServer(new RequestMedicalBackpackC2SPacket());
         }
 
         if (treating) {
@@ -146,10 +146,10 @@ public class BodyStatusScreen extends Screen {
                         new StartTreatmentC2SPacket(selectedBackpackSlot, selectedBodyPart)
                 );
 
-                if (treatButton != null) {
-                    treatButton.active = false;
-                    treatButton.setMessage(Component.literal("Tratando..."));
-                }
+                selectedBackpackSlot = -1;
+                selectedBodyPart = null;
+
+                ModNetwork.STATS_CHANNEL.sendToServer(new RequestMedicalBackpackC2SPacket());
             }
         }
 
@@ -180,6 +180,7 @@ public class BodyStatusScreen extends Screen {
                 && selectedBodyPart != null
                 && ClientPlayerData.getBleeding(selectedBodyPart) != BleedingType.NONE;
 
+        treatButton.visible = diagnosed;
         treatButton.active = canTreat;
         treatButton.setMessage(Component.literal(treating ? "Tratando..." : "Tratar"));
     }

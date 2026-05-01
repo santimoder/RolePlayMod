@@ -6,6 +6,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import santi_moder.roleplaymod.common.player.BleedingType;
 import santi_moder.roleplaymod.common.player.BodyPart;
+import santi_moder.roleplaymod.network.MedicalEffectS2CPacket;
 import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.SyncPlayerDataPacket;
@@ -15,7 +16,7 @@ import net.minecraftforge.network.PacketDistributor;
 public class PlayerTickHandler {
     private static final int LOGIC_INTERVAL = 20; // 1 segundo
     private static final int STAMINA_REGEN_DELAY = 60; // 3 segundos (20 ticks * 3)
-    private static final int BLEEDING_INTERVAL = 60; // 3 segundos
+    private static final int BLEEDING_INTERVAL = 1200; // 1 minuto
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
@@ -33,6 +34,12 @@ public class PlayerTickHandler {
             // =====================
             data.tickStaminaCooldown();
             data.applyBodyPartEffects();
+
+            if (player.hurtTime > 0 || player.invulnerableTime > 0) {
+                player.hurtTime = 0;
+                player.hurtDuration = 0;
+                player.invulnerableTime = 0;
+            }
 
             // Sprint consume stamina continuamente
             if (player.isSprinting()) {
@@ -88,7 +95,19 @@ public class PlayerTickHandler {
             food.setSaturation(0);
 
             if (player.tickCount % BLEEDING_INTERVAL == 0) {
+                int sangreAntes = data.getSangre();
+
                 data.tickBleeding();
+
+                if (data.getSangre() < sangreAntes) {
+                    int sangrePerdida = sangreAntes - data.getSangre();
+                    float intensity = Math.min(1.0F, sangrePerdida / 8.0F);
+
+                    ModNetwork.STATS_CHANNEL.send(
+                            PacketDistributor.PLAYER.with(() -> player),
+                            new MedicalEffectS2CPacket(MedicalEffectS2CPacket.Type.BLEED_PULSE, intensity)
+                    );
+                }
             }
 
             if (santi_moder.roleplaymod.common.util.MedicalUtils.checkAndKill(player, data)) {
@@ -179,23 +198,10 @@ public class PlayerTickHandler {
             }
 
             if (data.isInconsciente()) {
+                player.setSprinting(false);
+                player.setShiftKeyDown(false);
                 player.setDeltaMovement(0, player.getDeltaMovement().y, 0);
-
-                player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                        net.minecraft.world.effect.MobEffects.BLINDNESS,
-                        40,
-                        1,
-                        true,
-                        false
-                ));
-
-                player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                        net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN,
-                        40,
-                        10,
-                        true,
-                        false
-                ));
+                player.hurtMarked = true;
             }
 
             ModNetwork.STATS_CHANNEL.send(
