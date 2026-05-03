@@ -21,8 +21,9 @@ import santi_moder.roleplaymod.server.combat.CustomDamageType;
 import santi_moder.roleplaymod.server.combat.DamageProcessor;
 import santi_moder.roleplaymod.server.combat.ProjectileMovementTrace;
 import santi_moder.roleplaymod.server.combat.ProjectilePositionTracker;
+import santi_moder.roleplaymod.server.combat.weapon.TaCZWeaponResolver;
+import santi_moder.roleplaymod.server.combat.weapon.WeaponCategory;
 import santi_moder.roleplaymod.server.combat.weapon.WeaponDamageProfile;
-import santi_moder.roleplaymod.server.combat.weapon.WeaponDamageResolver;
 
 import java.util.Optional;
 
@@ -43,7 +44,15 @@ public final class PlayerDamageHandler {
         BodyPart hitPart = resolveHitPart(event, player, damageType);
         Vec3 sourcePosition = resolveSourcePosition(event, player);
 
-        WeaponDamageProfile weaponProfile = WeaponDamageResolver.resolve(event.getSource(), event.getAmount());
+        WeaponDamageProfile weaponProfile;
+
+        Entity attacker = event.getSource().getEntity();
+
+        if (attacker instanceof ServerPlayer shooter) {
+            weaponProfile = TaCZWeaponResolver.resolveFromPlayer(shooter);
+        } else {
+            weaponProfile = WeaponDamageProfile.generic();
+        }
 
         DamageProcessor.applyDamage(
                 player,

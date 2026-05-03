@@ -142,14 +142,8 @@ public class BodyStatusScreen extends Screen {
                 treating = false;
                 treatmentTicks = 0;
 
-                ModNetwork.STATS_CHANNEL.sendToServer(
-                        new StartTreatmentC2SPacket(selectedBackpackSlot, selectedBodyPart)
-                );
-
                 selectedBackpackSlot = -1;
                 selectedBodyPart = null;
-
-                ModNetwork.STATS_CHANNEL.sendToServer(new RequestMedicalBackpackC2SPacket());
             }
         }
 
@@ -161,6 +155,10 @@ public class BodyStatusScreen extends Screen {
         if (selectedBackpackSlot < 0) return;
         if (selectedBodyPart == null) return;
         if (ClientPlayerData.getBleeding(selectedBodyPart) == BleedingType.NONE) return;
+
+        ModNetwork.STATS_CHANNEL.sendToServer(
+                new StartTreatmentC2SPacket(selectedBackpackSlot, selectedBodyPart)
+        );
 
         treating = true;
         treatmentTicks = 0;

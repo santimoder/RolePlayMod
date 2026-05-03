@@ -8,7 +8,11 @@ import java.util.Map;
 
 public class PlayerData implements IPlayerData {
 
-    private static final int MAX_BODY_HP = 5;
+    private static final int DEFAULT_BODY_HP = 30;
+    private static final int HEAD_MAX_HP = 20;
+    private static final int TORSO_MAX_HP = 60;
+    private static final int ARM_MAX_HP = 25;
+    private static final int LEG_MAX_HP = 30;
 
     private final Map<BodyPart, Integer> bodyHp = new EnumMap<>(BodyPart.class);
     private final Map<BodyPart, BleedingType> bleedings = new EnumMap<>(BodyPart.class);
@@ -37,7 +41,7 @@ public class PlayerData implements IPlayerData {
 
     public PlayerData() {
         for (BodyPart part : BodyPart.values()) {
-            bodyHp.put(part, MAX_BODY_HP);
+            bodyHp.put(part, getMaxBodyHp(part));
             bleedings.put(part, BleedingType.NONE);
         }
     }
@@ -74,7 +78,7 @@ public class PlayerData implements IPlayerData {
         this.staminaRegenBuffer = 0;
 
         for (BodyPart part : BodyPart.values()) {
-            bodyHp.put(part, MAX_BODY_HP);
+            bodyHp.put(part, getMaxBodyHp(part));
             bleedings.put(part, BleedingType.NONE);
         }
 
@@ -257,14 +261,23 @@ public class PlayerData implements IPlayerData {
         staminaRegenBuffer = Math.max(0, staminaRegenBuffer - 20);
     }
 
+    private int getMaxBodyHp(BodyPart part) {
+        return switch (part) {
+            case HEAD -> HEAD_MAX_HP;
+            case TORSO -> TORSO_MAX_HP;
+            case LEFT_ARM, RIGHT_ARM -> ARM_MAX_HP;
+            case LEFT_LEG, RIGHT_LEG -> LEG_MAX_HP;
+        };
+    }
+
     @Override
     public int getBodyHp(BodyPart part) {
-        return bodyHp.getOrDefault(part, MAX_BODY_HP);
+        return bodyHp.getOrDefault(part, getMaxBodyHp(part));
     }
 
     @Override
     public void setBodyHp(BodyPart part, int value) {
-        bodyHp.put(part, clampBodyHp(value));
+        bodyHp.put(part, clampBodyHp(part, value));
     }
 
     @Override
@@ -284,9 +297,16 @@ public class PlayerData implements IPlayerData {
         int newHp = Math.max(0, getBodyHp(part) - amount);
         setBodyHp(part, newHp);
 
+        int maxHp = getMaxBodyHp(part);
+        float hpRatio = newHp / (float) maxHp;
+
         if (newHp <= 0) {
-            applyBleed(part, BleedingType.HEAVY);
-        } else if (newHp <= 2) {
+            if (part == BodyPart.HEAD || part == BodyPart.TORSO) {
+                applyBleed(part, BleedingType.HEAVY);
+            } else {
+                applyBleed(part, BleedingType.MEDIUM);
+            }
+        } else if (hpRatio <= 0.35F) {
             applyBleed(part, BleedingType.MEDIUM);
         }
     }
@@ -324,12 +344,12 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void applyBodyPartEffects() {
-        canAttack = getBodyHp(BodyPart.LEFT_ARM) > 1 && getBodyHp(BodyPart.RIGHT_ARM) > 1;
-        canSprint = getBodyHp(BodyPart.LEFT_LEG) > 1 && getBodyHp(BodyPart.RIGHT_LEG) > 1;
+        canAttack = getBodyHp(BodyPart.LEFT_ARM) > 5 && getBodyHp(BodyPart.RIGHT_ARM) > 5;
+        canSprint = getBodyHp(BodyPart.LEFT_LEG) > 6 && getBodyHp(BodyPart.RIGHT_LEG) > 6;
 
-        staminaMultiplier = getBodyHp(BodyPart.TORSO) <= 1 ? 0.5f : 1.0f;
+        staminaMultiplier = getBodyHp(BodyPart.TORSO) <= 20 ? 0.65f : 1.0f;
 
-        visionBlurred = getBodyHp(BodyPart.HEAD) <= 2 || shock >= 65 || sangre <= 35;
+        visionBlurred = getBodyHp(BodyPart.HEAD) <= 8 || shock >= 65 || sangre <= 35;
 
         if (shock >= 75 || sangre <= 25) {
             canSprint = false;
@@ -423,7 +443,7 @@ public class PlayerData implements IPlayerData {
         return Math.max(0, Math.min(100, value));
     }
 
-    private int clampBodyHp(int value) {
-        return Math.max(0, Math.min(MAX_BODY_HP, value));
+    private int clampBodyHp(BodyPart part, int value) {
+        return Math.max(0, Math.min(getMaxBodyHp(part), value));
     }
 }

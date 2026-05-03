@@ -40,8 +40,12 @@ public final class DamageProcessor {
         if (target == null || target.level().isClientSide) return;
 
         target.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            DamageSeverity severity = DamageSeverity.fromDamage(rawDamage);
-            int baseDamage = scaleDamage(type, rawDamage, severity);
+            float effectiveRawDamage = weaponProfile != null
+                    ? weaponProfile.baseDamage()
+                    : rawDamage;
+
+            DamageSeverity severity = DamageSeverity.fromDamage(effectiveRawDamage);
+            int baseDamage = scaleDamage(type, effectiveRawDamage, severity);
 
             switch (type) {
                 case PROJECTILE -> applyProjectileDamage(data, hitPart, baseDamage, severity, weaponProfile);
@@ -139,10 +143,10 @@ public final class DamageProcessor {
          * Esto hace que sniper / rifle pesado sean realmente peligrosos,
          * pero no convierte pistolas o SMG en muerte instantánea siempre.
          */
-        if (hitPart == BodyPart.HEAD && highPenetration && severity != DamageSeverity.LIGHT) {
-            data.damageBodyPart(BodyPart.HEAD, 5);
-            data.setSangre(0);
-            data.setShock(100);
+        if (hitPart == BodyPart.HEAD && highPenetration) {
+            data.damageBodyPart(BodyPart.HEAD, bodyDamage + 10);
+            data.setSangre(data.getSangre() - 25);
+            data.addShock(60);
             data.applyBleed(BodyPart.HEAD, BleedingType.HEAVY);
             return;
         }
@@ -184,7 +188,7 @@ public final class DamageProcessor {
 
         switch (hitPart) {
             case HEAD -> {
-                int partDamage = bodyDamage * 2;
+                int partDamage = Math.round(bodyDamage * 1.4F);
                 int bloodLoss = calculateBloodLoss(partDamage, 1.50F, bloodMultiplier);
 
                 data.damageBodyPart(BodyPart.HEAD, partDamage);
@@ -193,7 +197,7 @@ public final class DamageProcessor {
             }
 
             case TORSO -> {
-                int partDamage = bodyDamage;
+                int partDamage = Math.round(bodyDamage * 0.85F);
                 int bloodLoss = calculateBloodLoss(partDamage, 1.00F, bloodMultiplier);
 
                 data.damageBodyPart(BodyPart.TORSO, partDamage);
@@ -202,7 +206,7 @@ public final class DamageProcessor {
             }
 
             case LEFT_ARM, RIGHT_ARM -> {
-                int partDamage = bodyDamage;
+                int partDamage = Math.round(bodyDamage * 0.6F);
                 int bloodLoss = calculateBloodLoss(partDamage, 0.50F, bloodMultiplier);
 
                 data.damageBodyPart(hitPart, partDamage);
@@ -211,7 +215,7 @@ public final class DamageProcessor {
             }
 
             case LEFT_LEG, RIGHT_LEG -> {
-                int partDamage = bodyDamage;
+                int partDamage = Math.round(bodyDamage * 0.7F);
                 int bloodLoss = calculateBloodLoss(partDamage, 0.60F, bloodMultiplier);
 
                 data.damageBodyPart(hitPart, partDamage);
@@ -243,7 +247,7 @@ public final class DamageProcessor {
     }
 
     private static int calculateBloodLoss(int damage, float locationMultiplier, float weaponMultiplier) {
-        return Math.max(1, Math.round(damage * locationMultiplier * weaponMultiplier));
+        return Math.max(1, Math.round(damage * locationMultiplier * weaponMultiplier * 0.6F));
     }
 
     private static void applyMeleeDamage(IPlayerData data, BodyPart hitPart, int damage, DamageSeverity severity) {
