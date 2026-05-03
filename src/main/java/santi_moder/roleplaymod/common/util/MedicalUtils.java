@@ -11,6 +11,9 @@ public final class MedicalUtils {
     }
 
     public static boolean checkAndKill(ServerPlayer player, IPlayerData data) {
+        if (player == null || data == null) return false;
+        if (player.isDeadOrDying()) return true;
+
         if (isMedicallyDead(data)) {
             forceMedicalDeath(player);
             return true;
@@ -20,12 +23,15 @@ public final class MedicalUtils {
     }
 
     public static boolean isMedicallyDead(IPlayerData data) {
+        if (data == null) return false;
+
         return data.getSangre() <= 0
                 || data.getBodyHp(BodyPart.HEAD) <= 0
                 || data.getBodyHp(BodyPart.TORSO) <= 0;
     }
 
     public static void forceMedicalDeath(ServerPlayer player) {
+        if (player == null) return;
         if (player.isDeadOrDying()) return;
 
         DamageSource source = player.damageSources().genericKill();
@@ -34,26 +40,37 @@ public final class MedicalUtils {
         player.die(source);
     }
 
-    public static boolean shouldBeUnconscious(IPlayerData data) {
-        if (isMedicallyDead(data)) return false;
+    public static int getUnconsciousDurationTicks(IPlayerData data, int recentBloodLoss) {
+        if (data == null) return 0;
+        if (isMedicallyDead(data)) return 0;
 
-        if (data.getShock() >= 85) return true;
-
-        if (data.getBodyHp(BodyPart.HEAD) <= 1 && data.getBodyHp(BodyPart.HEAD) > 0) {
-            return true;
+        if (data.getBodyHp(BodyPart.HEAD) > 0 && data.getBodyHp(BodyPart.HEAD) <= 3) {
+            return 30 * 20;
         }
 
-        if (data.getSangre() <= 20 && data.getSangre() > 0) {
-            return true;
+        if (data.getSangre() > 0 && data.getSangre() <= 15) {
+            return 25 * 20;
         }
 
-        return data.getContadorInconsciencias() >= 3;
+        if (data.getShock() >= 90) {
+            return 25 * 20;
+        }
+
+        if (data.getShock() >= 85) {
+            return 15 * 20;
+        }
+
+        if (recentBloodLoss >= 25) {
+            return 15 * 20;
+        }
+
+        return 0;
     }
 
     public static boolean canWakeUp(IPlayerData data) {
-        return data.getSangre() >= 40
-                && data.getShock() <= 45
-                && data.getBodyHp(BodyPart.HEAD) >= 3
-                && data.getBodyHp(BodyPart.TORSO) > 0;
+        if (data == null) return false;
+        if (isMedicallyDead(data)) return false;
+
+        return data.getUnconsciousTicks() <= 0;
     }
 }

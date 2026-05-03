@@ -40,40 +40,50 @@ public final class DamageProcessor {
         if (target == null || target.level().isClientSide) return;
 
         target.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            float effectiveRawDamage = weaponProfile != null
-                    ? weaponProfile.baseDamage()
-                    : rawDamage;
+            BodyPart safePart = hitPart == null ? BodyPart.TORSO : hitPart;
 
-            DamageSeverity severity = DamageSeverity.fromDamage(effectiveRawDamage);
-            int baseDamage = scaleDamage(type, effectiveRawDamage, severity);
-
-            switch (type) {
-                case PROJECTILE -> applyProjectileDamage(data, hitPart, baseDamage, severity, weaponProfile);
-                case MELEE -> applyMeleeDamage(data, hitPart, baseDamage, severity);
-                case FALL -> applyFallDamage(data, baseDamage, severity);
-                case FIRE -> applyFireDamage(data, baseDamage, severity);
-                case DROWN -> applyDrownDamage(data, baseDamage, severity);
-                case EXPLOSION -> ExplosionDamageProcessor.applyExplosionTrauma(target, sourcePosition, rawDamage);
-                case VOID -> applyVoidDamage(data);
-                case GENERIC -> applyMeleeDamage(data, hitPart, baseDamage, severity);
+            if (type == CustomDamageType.EXPLOSION) {
+                ExplosionDamageProcessor.applyExplosionTrauma(target, sourcePosition, rawDamage);
+                return;
             }
 
-            if (type != CustomDamageType.EXPLOSION) {
-                finishDamage(target, data);
+            float effectiveDamage = getEffectiveRawDamage(type, rawDamage, weaponProfile);
+            DamageSeverity severity = DamageSeverity.fromDamage(effectiveDamage);
+
+            DamageResult result = switch (type) {
+                case PROJECTILE -> calculateProjectileDamage(safePart, effectiveDamage, severity, weaponProfile);
+                case MELEE -> calculateMeleeDamage(safePart, effectiveDamage, severity);
+                case FALL -> calculateFallDamage(effectiveDamage, severity);
+                case FIRE -> calculateFireDamage(effectiveDamage, severity);
+                case DROWN -> calculateDrownDamage(effectiveDamage, severity);
+                case VOID -> calculateVoidDamage();
+                case GENERIC -> calculateMeleeDamage(safePart, effectiveDamage, severity);
+                case EXPLOSION -> DamageResult.empty();
+            };
+
+            applyResult(data, result);
+
+            int unconsciousTicks = MedicalUtils.getUnconsciousDurationTicks(data, result.bloodLoss());
+
+            if (unconsciousTicks > 0) {
+                data.setInconsciente(true);
+                data.setUnconsciousTicks(Math.max(data.getUnconsciousTicks(), unconsciousTicks));
             }
+
+            finishDamage(target, data, result.effectIntensity());
         });
     }
 
     public static void finishDamage(ServerPlayer target, IPlayerData data) {
+        finishDamage(target, data, 0.65F);
+    }
+
+    public static void finishDamage(ServerPlayer target, IPlayerData data, float effectIntensity) {
         data.applyBodyPartEffects();
 
         if (MedicalUtils.checkAndKill(target, data)) {
+            sync(target, data);
             return;
-        }
-
-        if (MedicalUtils.shouldBeUnconscious(data) && !data.isInconsciente()) {
-            data.setInconsciente(true);
-            data.incrementarInconsciencias();
         }
 
         if (!target.isDeadOrDying()) {
@@ -82,248 +92,438 @@ public final class DamageProcessor {
 
         ModNetwork.STATS_CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> target),
-                new MedicalEffectS2CPacket(MedicalEffectS2CPacket.Type.DAMAGE_HIT, 0.65F)
+                new MedicalEffectS2CPacket(
+                        MedicalEffectS2CPacket.Type.DAMAGE_HIT,
+                        clampFloat(effectIntensity, 0.25F, 1.0F)
+                )
         );
 
+        sync(target, data);
+    }
 
+    private static float getEffectiveRawDamage(
+            CustomDamageType type,
+            float rawDamage,
+            WeaponDamageProfile profile
+    ) {
+        if (type == CustomDamageType.PROJECTILE && profile != null && profile.category() != WeaponCategory.GENERIC) {
+            return Math.max(1.0F, profile.baseDamage());
+        }
+
+        return Math.max(1.0F, rawDamage);
+    }
+
+    private static DamageResult calculateProjectileDamage(
+            BodyPart part,
+            float rawDamage,
+            DamageSeverity severity,
+            WeaponDamageProfile profile
+    ) {
+        WeaponCategory category = profile == null ? WeaponCategory.GENERIC : profile.category();
+
+        float weaponBodyMultiplier = profile == null ? 1.0F : profile.bodyDamageMultiplier();
+        float weaponBloodMultiplier = profile == null ? 1.0F : profile.bloodLossMultiplier();
+        float weaponShockMultiplier = profile == null ? 1.0F : profile.shockMultiplier();
+
+        boolean heavyBleedWeapon = profile != null && profile.causesHeavyBleeding();
+        boolean highPenetration = profile != null && profile.isHighPenetration();
+
+        float categoryBodyMultiplier = switch (category) {
+            case PISTOL -> 0.95F;
+            case SMG -> 0.78F;
+            case RIFLE -> 0.92F;
+            case SHOTGUN -> 1.05F;
+            case SNIPER -> 1.15F;
+            case EXPLOSIVE -> 1.20F;
+            case MELEE, GENERIC -> 0.85F;
+        };
+
+        float categoryBloodMultiplier = switch (category) {
+            case PISTOL -> 0.95F;
+            case SMG -> 0.80F;
+            case RIFLE -> 1.00F;
+            case SHOTGUN -> 1.25F;
+            case SNIPER -> 1.35F;
+            case EXPLOSIVE -> 1.25F;
+            case MELEE, GENERIC -> 0.85F;
+        };
+
+        float categoryShockMultiplier = switch (category) {
+            case PISTOL -> 0.95F;
+            case SMG -> 0.85F;
+            case RIFLE -> 1.05F;
+            case SHOTGUN -> 1.25F;
+            case SNIPER -> 1.45F;
+            case EXPLOSIVE -> 1.50F;
+            case MELEE, GENERIC -> 0.85F;
+        };
+
+        int baseBodyDamage = Math.max(1, Math.round(
+                rawDamage * 0.85F * weaponBodyMultiplier * categoryBodyMultiplier
+        ));
+
+        float partBodyMultiplier = bodyDamageMultiplier(part);
+        float partBloodMultiplier = bloodMultiplier(part);
+        float partShockMultiplier = shockMultiplier(part);
+
+        int bodyDamage = Math.max(1, Math.round(baseBodyDamage * partBodyMultiplier));
+
+        int bloodLoss = Math.max(0, Math.round(
+                bodyDamage * 0.45F * weaponBloodMultiplier * categoryBloodMultiplier * partBloodMultiplier
+        ));
+
+        int shock = Math.max(1, Math.round(
+                shockFor(severity) * weaponShockMultiplier * categoryShockMultiplier * partShockMultiplier
+        ));
+
+        BleedingType bleeding = resolveProjectileBleeding(
+                severity,
+                category,
+                bodyDamage,
+                heavyBleedWeapon,
+                highPenetration,
+                part
+        );
+
+        if (part == BodyPart.HEAD) {
+            shock += highPenetration ? 45 : 25;
+            bloodLoss += highPenetration ? 12 : 6;
+
+            if (category == WeaponCategory.SNIPER && highPenetration) {
+                bodyDamage += 12;
+                bleeding = BleedingType.HEAVY;
+            }
+        }
+
+        if (part == BodyPart.TORSO) {
+            shock += 10;
+
+            if (category == WeaponCategory.SNIPER || category == WeaponCategory.SHOTGUN) {
+                bleeding = maxBleeding(bleeding, BleedingType.HEAVY);
+            }
+        }
+
+        if (part == BodyPart.LEFT_ARM || part == BodyPart.RIGHT_ARM) {
+            bloodLoss = Math.max(1, Math.round(bloodLoss * 0.75F));
+            shock = Math.max(2, Math.round(shock * 0.80F));
+        }
+
+        if (part == BodyPart.LEFT_LEG || part == BodyPart.RIGHT_LEG) {
+            bloodLoss = Math.max(1, Math.round(bloodLoss * 0.85F));
+            shock = Math.max(2, Math.round(shock * 0.90F));
+        }
+
+        return new DamageResult(
+                new PartDamage(part, bodyDamage, bleeding),
+                clampBloodLoss(bloodLoss),
+                clampShock(shock),
+                effectIntensity(severity, category)
+        );
+    }
+
+    private static DamageResult calculateMeleeDamage(
+            BodyPart part,
+            float rawDamage,
+            DamageSeverity severity
+    ) {
+        int damage = Math.max(1, Math.round(rawDamage * switch (severity) {
+            case LIGHT -> 0.45F;
+            case MEDIUM -> 0.65F;
+            case HEAVY -> 0.85F;
+            case CRITICAL -> 1.05F;
+        }));
+
+        damage = Math.max(1, Math.round(damage * switch (part) {
+            case HEAD -> 1.25F;
+            case TORSO -> 1.00F;
+            case LEFT_ARM, RIGHT_ARM -> 0.75F;
+            case LEFT_LEG, RIGHT_LEG -> 0.85F;
+        }));
+
+        int bloodLoss = switch (part) {
+            case HEAD -> Math.max(1, damage / 2);
+            case TORSO -> Math.max(1, damage / 3);
+            case LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG -> severity == DamageSeverity.CRITICAL ? Math.max(1, damage / 4) : 0;
+        };
+
+        int shock = Math.max(2, shockFor(severity) / 2);
+
+        BleedingType bleeding = severity == DamageSeverity.CRITICAL
+                ? BleedingType.MEDIUM
+                : BleedingType.NONE;
+
+        return new DamageResult(
+                new PartDamage(part, damage, bleeding),
+                bloodLoss,
+                shock,
+                effectIntensity(severity, WeaponCategory.MELEE)
+        );
+    }
+
+    private static DamageResult calculateFallDamage(float rawDamage, DamageSeverity severity) {
+        int damage = Math.max(1, Math.round(rawDamage * 0.75F));
+        DamageResult result = DamageResult.empty();
+
+        result.addPartDamage(BodyPart.LEFT_LEG, damage, damage >= 8 ? BleedingType.MEDIUM : BleedingType.NONE);
+        result.addPartDamage(BodyPart.RIGHT_LEG, damage, damage >= 8 ? BleedingType.MEDIUM : BleedingType.NONE);
+
+        if (damage >= 5) {
+            result.addPartDamage(BodyPart.TORSO, Math.max(1, damage / 2), BleedingType.NONE);
+            result.addBloodLoss(Math.max(1, damage / 4));
+        }
+
+        if (damage >= 9) {
+            result.addPartDamage(BodyPart.HEAD, Math.max(1, damage / 3), BleedingType.NONE);
+            result.addShock(18);
+        }
+
+        result.addShock(shockFor(severity) + damage);
+        result.setEffectIntensity(effectIntensity(severity, WeaponCategory.GENERIC));
+
+        return result;
+    }
+
+    private static DamageResult calculateFireDamage(float rawDamage, DamageSeverity severity) {
+        int burn = Math.max(1, Math.round(rawDamage * 0.55F));
+        DamageResult result = DamageResult.empty();
+
+        result.addPartDamage(BodyPart.TORSO, burn, BleedingType.NONE);
+        result.addPartDamage(BodyPart.HEAD, Math.max(1, burn / 2), BleedingType.NONE);
+        result.addPartDamage(BodyPart.LEFT_ARM, Math.max(1, burn / 2), BleedingType.NONE);
+        result.addPartDamage(BodyPart.RIGHT_ARM, Math.max(1, burn / 2), BleedingType.NONE);
+        result.addPartDamage(BodyPart.LEFT_LEG, Math.max(1, burn / 2), BleedingType.NONE);
+        result.addPartDamage(BodyPart.RIGHT_LEG, Math.max(1, burn / 2), BleedingType.NONE);
+
+        result.addBloodLoss(Math.max(0, burn / 4));
+        result.addShock(Math.max(3, shockFor(severity) / 2));
+        result.setEffectIntensity(effectIntensity(severity, WeaponCategory.GENERIC));
+
+        return result;
+    }
+
+    private static DamageResult calculateDrownDamage(float rawDamage, DamageSeverity severity) {
+        int damage = Math.max(1, Math.round(rawDamage * 0.65F));
+
+        DamageResult result = DamageResult.empty();
+        result.addPartDamage(BodyPart.TORSO, damage, BleedingType.NONE);
+        result.addPartDamage(BodyPart.HEAD, Math.max(1, damage / 2), BleedingType.NONE);
+        result.addShock(shockFor(severity) + 10);
+        result.setEffectIntensity(effectIntensity(severity, WeaponCategory.GENERIC));
+
+        return result;
+    }
+
+    private static DamageResult calculateVoidDamage() {
+        DamageResult result = DamageResult.empty();
+
+        for (BodyPart part : BodyPart.values()) {
+            result.addPartDamage(part, 999, BleedingType.HEAVY);
+        }
+
+        result.addBloodLoss(100);
+        result.addShock(100);
+        result.setEffectIntensity(1.0F);
+
+        return result;
+    }
+
+    private static void applyResult(IPlayerData data, DamageResult result) {
+        for (PartDamage partDamage : result.partDamages()) {
+            data.damageBodyPart(partDamage.part(), partDamage.damage());
+
+            if (partDamage.bleeding() != BleedingType.NONE) {
+                data.applyBleed(partDamage.part(), partDamage.bleeding());
+            }
+        }
+
+        if (result.bloodLoss() > 0) {
+            data.setSangre(data.getSangre() - result.bloodLoss());
+        }
+
+        if (result.shock() > 0) {
+            data.addShock(result.shock());
+        }
+
+        data.applyBodyPartEffects();
+    }
+
+    private static BleedingType resolveProjectileBleeding(
+            DamageSeverity severity,
+            WeaponCategory category,
+            int bodyDamage,
+            boolean heavyBleedWeapon,
+            boolean highPenetration,
+            BodyPart part
+    ) {
+        if (heavyBleedWeapon && severity.ordinal() >= DamageSeverity.HEAVY.ordinal()) {
+            return BleedingType.HEAVY;
+        }
+
+        if (category == WeaponCategory.SNIPER || category == WeaponCategory.SHOTGUN) {
+            if (severity.ordinal() >= DamageSeverity.HEAVY.ordinal() || bodyDamage >= 8) {
+                return BleedingType.HEAVY;
+            }
+        }
+
+        if (highPenetration && (part == BodyPart.HEAD || part == BodyPart.TORSO)) {
+            if (severity.ordinal() >= DamageSeverity.HEAVY.ordinal()) {
+                return BleedingType.HEAVY;
+            }
+        }
+
+        if (severity == DamageSeverity.CRITICAL || bodyDamage >= 8) {
+            return BleedingType.MEDIUM;
+        }
+
+        if (severity == DamageSeverity.HEAVY || bodyDamage >= 5) {
+            return BleedingType.LIGHT;
+        }
+
+        return BleedingType.NONE;
+    }
+
+    private static float bodyDamageMultiplier(BodyPart part) {
+        return switch (part) {
+            case HEAD -> 1.35F;
+            case TORSO -> 0.95F;
+            case LEFT_ARM, RIGHT_ARM -> 0.60F;
+            case LEFT_LEG, RIGHT_LEG -> 0.70F;
+        };
+    }
+
+    private static float bloodMultiplier(BodyPart part) {
+        return switch (part) {
+            case HEAD -> 1.25F;
+            case TORSO -> 1.20F;
+            case LEFT_ARM, RIGHT_ARM -> 0.65F;
+            case LEFT_LEG, RIGHT_LEG -> 0.80F;
+        };
+    }
+
+    private static float shockMultiplier(BodyPart part) {
+        return switch (part) {
+            case HEAD -> 1.65F;
+            case TORSO -> 1.25F;
+            case LEFT_ARM, RIGHT_ARM -> 0.75F;
+            case LEFT_LEG, RIGHT_LEG -> 0.90F;
+        };
+    }
+
+    private static int shockFor(DamageSeverity severity) {
+        return switch (severity) {
+            case LIGHT -> 5;
+            case MEDIUM -> 13;
+            case HEAVY -> 25;
+            case CRITICAL -> 42;
+        };
+    }
+
+    private static float effectIntensity(DamageSeverity severity, WeaponCategory category) {
+        float base = switch (severity) {
+            case LIGHT -> 0.35F;
+            case MEDIUM -> 0.55F;
+            case HEAVY -> 0.75F;
+            case CRITICAL -> 1.0F;
+        };
+
+        if (category == WeaponCategory.SNIPER || category == WeaponCategory.SHOTGUN) {
+            base += 0.10F;
+        }
+
+        return clampFloat(base, 0.25F, 1.0F);
+    }
+
+    private static BleedingType maxBleeding(BleedingType current, BleedingType candidate) {
+        if (current == null) return candidate == null ? BleedingType.NONE : candidate;
+        if (candidate == null) return current;
+        return candidate.ordinal() > current.ordinal() ? candidate : current;
+    }
+
+    private static int clampBloodLoss(int value) {
+        return Math.max(0, Math.min(35, value));
+    }
+
+    private static int clampShock(int value) {
+        return Math.max(0, Math.min(85, value));
+    }
+
+    private static float clampFloat(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static void sync(ServerPlayer target, IPlayerData data) {
         ModNetwork.STATS_CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> target),
                 new SyncPlayerDataPacket(data)
         );
     }
 
-    private static int scaleDamage(CustomDamageType type, float rawDamage, DamageSeverity severity) {
-        float multiplier = switch (type) {
-            case PROJECTILE -> switch (severity) {
-                case LIGHT -> 0.75F;
-                case MEDIUM -> 1.00F;
-                case HEAVY -> 1.25F;
-                case CRITICAL -> 1.50F;
-            };
-            case MELEE -> switch (severity) {
-                case LIGHT -> 0.50F;
-                case MEDIUM -> 0.75F;
-                case HEAVY -> 1.00F;
-                case CRITICAL -> 1.20F;
-            };
-            case FALL -> 0.85F;
-            case FIRE -> 0.55F;
-            case DROWN -> 0.65F;
-            case EXPLOSION -> 1.00F;
-            case VOID -> 100.0F;
-            case GENERIC -> 0.75F;
-        };
-
-        return Math.max(1, (int) Math.ceil(rawDamage * multiplier));
-    }
-
-    private static void applyProjectileDamage(
-            IPlayerData data,
-            BodyPart hitPart,
-            int baseDamage,
-            DamageSeverity severity,
-            WeaponDamageProfile profile
+    private record PartDamage(
+            BodyPart part,
+            int damage,
+            BleedingType bleeding
     ) {
-        if (hitPart == null) hitPart = BodyPart.TORSO;
-
-        WeaponCategory category = profile == null ? WeaponCategory.GENERIC : profile.category();
-
-        float bodyMultiplier = profile == null ? 1.0F : profile.bodyDamageMultiplier();
-        float bloodMultiplier = profile == null ? 1.0F : profile.bloodLossMultiplier();
-        float shockMultiplier = profile == null ? 1.0F : profile.shockMultiplier();
-
-        int bodyDamage = Math.max(1, Math.round(baseDamage * bodyMultiplier));
-        int shock = Math.max(1, Math.round(shockFor(severity) * shockMultiplier));
-
-        boolean highPenetration = profile != null && profile.isHighPenetration();
-        boolean forceHeavyBleeding = profile != null && profile.causesHeavyBleeding();
-
-        /*
-         * Headshot de arma de alta penetración.
-         * Esto hace que sniper / rifle pesado sean realmente peligrosos,
-         * pero no convierte pistolas o SMG en muerte instantánea siempre.
-         */
-        if (hitPart == BodyPart.HEAD && highPenetration) {
-            data.damageBodyPart(BodyPart.HEAD, bodyDamage + 10);
-            data.setSangre(data.getSangre() - 25);
-            data.addShock(60);
-            data.applyBleed(BodyPart.HEAD, BleedingType.HEAVY);
-            return;
-        }
-
-        switch (category) {
-            case SMG -> {
-                bodyDamage = Math.max(1, Math.round(bodyDamage * 0.85F));
-                bloodMultiplier *= 0.85F;
-                shock = Math.max(1, Math.round(shock * 0.90F));
-            }
-
-            case RIFLE -> {
-                bloodMultiplier *= 1.10F;
-                shock += 8;
-            }
-
-            case SHOTGUN -> {
-                bodyDamage = Math.max(1, Math.round(bodyDamage * 1.15F));
-                bloodMultiplier *= 1.20F;
-                shock += 15;
-                forceHeavyBleeding = true;
-            }
-
-            case SNIPER -> {
-                bodyDamage = Math.max(1, Math.round(bodyDamage * 1.25F));
-                bloodMultiplier *= 1.30F;
-                shock += 35;
-                forceHeavyBleeding = true;
-            }
-
-            case PISTOL -> {
-                // Base equilibrada.
-            }
-
-            case EXPLOSIVE, MELEE, GENERIC -> {
-                // Se manejan por su tipo principal o como daño genérico.
-            }
-        }
-
-        switch (hitPart) {
-            case HEAD -> {
-                int partDamage = Math.round(bodyDamage * 1.4F);
-                int bloodLoss = calculateBloodLoss(partDamage, 1.50F, bloodMultiplier);
-
-                data.damageBodyPart(BodyPart.HEAD, partDamage);
-                data.setSangre(data.getSangre() - bloodLoss);
-                data.addShock(shock + 30);
-            }
-
-            case TORSO -> {
-                int partDamage = Math.round(bodyDamage * 0.85F);
-                int bloodLoss = calculateBloodLoss(partDamage, 1.00F, bloodMultiplier);
-
-                data.damageBodyPart(BodyPart.TORSO, partDamage);
-                data.setSangre(data.getSangre() - bloodLoss);
-                data.addShock(shock + 15);
-            }
-
-            case LEFT_ARM, RIGHT_ARM -> {
-                int partDamage = Math.round(bodyDamage * 0.6F);
-                int bloodLoss = calculateBloodLoss(partDamage, 0.50F, bloodMultiplier);
-
-                data.damageBodyPart(hitPart, partDamage);
-                data.setSangre(data.getSangre() - bloodLoss);
-                data.addShock(shock);
-            }
-
-            case LEFT_LEG, RIGHT_LEG -> {
-                int partDamage = Math.round(bodyDamage * 0.7F);
-                int bloodLoss = calculateBloodLoss(partDamage, 0.60F, bloodMultiplier);
-
-                data.damageBodyPart(hitPart, partDamage);
-                data.setSangre(data.getSangre() - bloodLoss);
-                data.addShock(shock + 5);
-            }
-        }
-
-        applyProjectileBleeding(data, hitPart, severity, bodyDamage, forceHeavyBleeding);
     }
 
-    private static void applyProjectileBleeding(
-            IPlayerData data,
-            BodyPart hitPart,
-            DamageSeverity severity,
-            int bodyDamage,
-            boolean forceHeavyBleeding
-    ) {
-        if (hitPart == null) return;
+    private static final class DamageResult {
 
-        if (forceHeavyBleeding || severity == DamageSeverity.CRITICAL || bodyDamage >= 8) {
-            data.applyBleed(hitPart, BleedingType.HEAVY);
-            return;
+        private final java.util.List<PartDamage> partDamages = new java.util.ArrayList<>();
+        private int bloodLoss;
+        private int shock;
+        private float effectIntensity;
+
+        private DamageResult(
+                PartDamage partDamage,
+                int bloodLoss,
+                int shock,
+                float effectIntensity
+        ) {
+            if (partDamage != null) {
+                this.partDamages.add(partDamage);
+            }
+
+            this.bloodLoss = clampBloodLoss(bloodLoss);
+            this.shock = clampShock(shock);
+            this.effectIntensity = clampFloat(effectIntensity, 0.25F, 1.0F);
         }
 
-        if (severity == DamageSeverity.HEAVY || bodyDamage >= 5) {
-            data.applyBleed(hitPart, BleedingType.MEDIUM);
-        }
-    }
-
-    private static int calculateBloodLoss(int damage, float locationMultiplier, float weaponMultiplier) {
-        return Math.max(1, Math.round(damage * locationMultiplier * weaponMultiplier * 0.6F));
-    }
-
-    private static void applyMeleeDamage(IPlayerData data, BodyPart hitPart, int damage, DamageSeverity severity) {
-        if (hitPart == null) hitPart = BodyPart.TORSO;
-
-        data.damageBodyPart(hitPart, damage);
-        data.addShock(Math.max(2, shockFor(severity) / 2));
-
-        if (hitPart == BodyPart.HEAD || hitPart == BodyPart.TORSO) {
-            data.setSangre(data.getSangre() - Math.max(1, damage / 3));
+        private static DamageResult empty() {
+            return new DamageResult(null, 0, 0, 0.35F);
         }
 
-        if (severity == DamageSeverity.CRITICAL) {
-            data.applyBleed(hitPart, BleedingType.MEDIUM);
-        }
-    }
-
-    private static void applyFallDamage(IPlayerData data, int damage, DamageSeverity severity) {
-        data.damageBodyPart(BodyPart.LEFT_LEG, damage);
-        data.damageBodyPart(BodyPart.RIGHT_LEG, damage);
-        data.addShock(shockFor(severity) + damage);
-
-        if (damage >= 5) {
-            data.damageBodyPart(BodyPart.TORSO, Math.max(1, damage / 2));
-            data.setSangre(data.getSangre() - Math.max(1, damage / 3));
+        private void addPartDamage(BodyPart part, int damage, BleedingType bleeding) {
+            if (part == null || damage <= 0) return;
+            partDamages.add(new PartDamage(part, damage, bleeding == null ? BleedingType.NONE : bleeding));
         }
 
-        if (damage >= 9) {
-            data.damageBodyPart(BodyPart.HEAD, Math.max(1, damage / 3));
-            data.addShock(20);
+        private void addBloodLoss(int amount) {
+            if (amount <= 0) return;
+            bloodLoss = clampBloodLoss(bloodLoss + amount);
         }
 
-        if (damage >= 7) {
-            data.applyBleed(BodyPart.LEFT_LEG, BleedingType.MEDIUM);
-            data.applyBleed(BodyPart.RIGHT_LEG, BleedingType.MEDIUM);
+        private void addShock(int amount) {
+            if (amount <= 0) return;
+            shock = clampShock(shock + amount);
         }
-    }
 
-    private static void applyFireDamage(IPlayerData data, int damage, DamageSeverity severity) {
-        int burn = Math.max(1, damage);
-
-        data.damageBodyPart(BodyPart.TORSO, burn);
-        data.damageBodyPart(BodyPart.HEAD, Math.max(1, burn / 2));
-        data.damageBodyPart(BodyPart.LEFT_ARM, Math.max(1, burn / 2));
-        data.damageBodyPart(BodyPart.RIGHT_ARM, Math.max(1, burn / 2));
-        data.damageBodyPart(BodyPart.LEFT_LEG, Math.max(1, burn / 2));
-        data.damageBodyPart(BodyPart.RIGHT_LEG, Math.max(1, burn / 2));
-
-        data.setSangre(data.getSangre() - Math.max(1, burn / 3));
-        data.addShock(Math.max(3, shockFor(severity) / 2));
-    }
-
-    private static void applyDrownDamage(IPlayerData data, int damage, DamageSeverity severity) {
-        data.damageBodyPart(BodyPart.TORSO, damage);
-        data.damageBodyPart(BodyPart.HEAD, Math.max(1, damage / 2));
-
-        data.setSangre(data.getSangre() - Math.max(1, damage));
-        data.addShock(shockFor(severity) + 10);
-    }
-
-    private static void applyVoidDamage(IPlayerData data) {
-        data.setSangre(0);
-        data.setShock(100);
-
-        for (BodyPart part : BodyPart.values()) {
-            data.setBodyHp(part, 0);
-            data.applyBleed(part, BleedingType.HEAVY);
+        private void setEffectIntensity(float value) {
+            effectIntensity = clampFloat(value, 0.25F, 1.0F);
         }
-    }
 
-    private static int shockFor(DamageSeverity severity) {
-        return switch (severity) {
-            case LIGHT -> 4;
-            case MEDIUM -> 12;
-            case HEAVY -> 25;
-            case CRITICAL -> 45;
-        };
+        private java.util.List<PartDamage> partDamages() {
+            return partDamages;
+        }
+
+        private int bloodLoss() {
+            return bloodLoss;
+        }
+
+        private int shock() {
+            return shock;
+        }
+
+        private float effectIntensity() {
+            return effectIntensity;
+        }
     }
 }

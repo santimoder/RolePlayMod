@@ -31,6 +31,10 @@ public interface IPlayerData {
     boolean isInconsciente();
     void setInconsciente(boolean value);
 
+    int getUnconsciousTicks();
+    void setUnconsciousTicks(int ticks);
+    void tickUnconsciousTicks();
+
     int getContadorInconsciencias();
     void incrementarInconsciencias();
     void resetInconsciencias();

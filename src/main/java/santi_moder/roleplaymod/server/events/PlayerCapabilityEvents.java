@@ -10,12 +10,15 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
+import santi_moder.roleplaymod.RolePlayMod;
+import santi_moder.roleplaymod.common.player.PlayerData;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.SyncInventoryPacket;
 import santi_moder.roleplaymod.network.SyncPlayerDataPacket;
 import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 
-@Mod.EventBusSubscriber(modid = "roleplaymod")
+@Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID)
+
 public class PlayerCapabilityEvents {
 
     private static final ResourceLocation ID =
@@ -40,33 +43,44 @@ public class PlayerCapabilityEvents {
         event.getOriginal().reviveCaps();
 
         event.getEntity().getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(newData -> {
+            event.getOriginal().getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(oldData -> {
 
-            // Si murió, respawnea limpio
-            if (event.isWasDeath()) {
-                newData.resetAfterDeath();
-            } else {
-                // Si es clone por otra razón, copiar el estado anterior
-                event.getOriginal().getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(oldData -> {
-                    newData.setSangre(oldData.getSangre());
-                    newData.setStamina(oldData.getStamina());
-                    newData.setSed(oldData.getSed());
-                    newData.setFatiga(oldData.getFatiga());
-                    newData.setSueno(oldData.getSueno());
-                    newData.setInconsciente(oldData.isInconsciente());
-                    newData.setWasOnGround(oldData.wasOnGround());
-                    newData.setStaminaRegenCooldown(oldData.getStaminaRegenCooldown());
-                    newData.setStaminaExhausted(oldData.isStaminaExhausted());
+                if (event.isWasDeath()) {
+                    newData.resetAfterDeath();
+                    return;
+                }
 
-                    if (oldData instanceof santi_moder.roleplaymod.common.player.PlayerData oldPd &&
-                            newData instanceof santi_moder.roleplaymod.common.player.PlayerData newPd) {
-                        newPd.deserializeBodyParts(oldPd.serializeBodyParts());
-                        newPd.setCanAttack(oldPd.canAttack());
-                        newPd.setCanSprint(oldPd.canSprint());
-                        newPd.setStaminaMultiplier(oldPd.getStaminaMultiplier());
-                        newPd.setVisionBlurred(oldPd.isVisionBlurred());
-                    }
-                });
-            }
+                newData.setSangre(oldData.getSangre());
+                newData.setStamina(oldData.getStamina());
+                newData.setSed(oldData.getSed());
+                newData.setFatiga(oldData.getFatiga());
+                newData.setSueno(oldData.getSueno());
+                newData.setShock(oldData.getShock());
+
+                newData.setInconsciente(oldData.isInconsciente());
+                newData.setUnconsciousTicks(oldData.getUnconsciousTicks());
+
+                newData.setWasOnGround(oldData.wasOnGround());
+                newData.setStaminaRegenCooldown(oldData.getStaminaRegenCooldown());
+                newData.setStaminaExhausted(oldData.isStaminaExhausted());
+
+                newData.deserializeBodyParts(oldData.serializeBodyParts());
+
+                newData.setCanAttack(oldData.canAttack());
+                newData.setCanSprint(oldData.canSprint());
+                newData.setStaminaMultiplier(oldData.getStaminaMultiplier());
+                newData.setVisionBlurred(oldData.isVisionBlurred());
+
+                newData.getEquipmentInventory().deserializeNBT(
+                        oldData.getEquipmentInventory().serializeNBT()
+                );
+
+                if (oldData instanceof PlayerData oldPd && newData instanceof PlayerData newPd) {
+                    newPd.setContadorInconsciencias(oldPd.getContadorInconsciencias());
+                }
+
+                newData.applyBodyPartEffects();
+            });
         });
 
         event.getOriginal().invalidateCaps();

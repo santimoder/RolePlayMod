@@ -3,9 +3,9 @@ package santi_moder.roleplaymod.common.player;
 public enum BleedingType {
 
     NONE(0),
-    LIGHT(1),      // -1 sangre / tick lógico
-    MEDIUM(2),     // -2
-    HEAVY(5);      // -5
+    LIGHT(1),
+    MEDIUM(2),
+    HEAVY(3);
 
     private final int bloodLoss;
 

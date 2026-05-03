@@ -94,43 +94,12 @@ public class PlayerTickHandler {
 
             food.setSaturation(0);
 
-            if (player.tickCount % BLEEDING_INTERVAL == 0) {
-                int sangreAntes = data.getSangre();
-
-                data.tickBleeding();
-
-                if (data.getSangre() < sangreAntes) {
-                    int sangrePerdida = sangreAntes - data.getSangre();
-                    float intensity = Math.min(1.0F, sangrePerdida / 8.0F);
-
-                    ModNetwork.STATS_CHANNEL.send(
-                            PacketDistributor.PLAYER.with(() -> player),
-                            new MedicalEffectS2CPacket(MedicalEffectS2CPacket.Type.BLEED_PULSE, intensity)
-                    );
-                }
-            }
-
             if (santi_moder.roleplaymod.common.util.MedicalUtils.checkAndKill(player, data)) {
                 ModNetwork.STATS_CHANNEL.send(
                         PacketDistributor.PLAYER.with(() -> player),
                         new SyncPlayerDataPacket(data)
                 );
                 return;
-            }
-
-            boolean shouldBeUnconscious =
-                    santi_moder.roleplaymod.common.util.MedicalUtils.shouldBeUnconscious(data);
-
-            if (shouldBeUnconscious && !data.isInconsciente()) {
-                data.setInconsciente(true);
-                data.incrementarInconsciencias();
-                player.setSprinting(false);
-                player.stopRiding();
-            }
-
-            if (!shouldBeUnconscious && data.isInconsciente()
-                    && santi_moder.roleplaymod.common.util.MedicalUtils.canWakeUp(data)) {
-                data.setInconsciente(false);
             }
 
             int MAX_STAMINA = 100;

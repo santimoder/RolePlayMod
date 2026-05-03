@@ -29,7 +29,6 @@ import java.util.UUID;
 public final class MedicalTreatmentHandler {
 
     private static final int TREATMENT_TICKS = 60; // 3 segundos
-    private static final int BACKPACK_EQUIPMENT_SLOT = 1;
 
     private static final Map<UUID, PendingTreatment> PENDING = new HashMap<>();
 
@@ -45,7 +44,9 @@ public final class MedicalTreatmentHandler {
             if (data.getBleeding(bodyPart) == BleedingType.NONE) return;
 
             EquipmentInventory equipment = data.getEquipmentInventory();
-            ItemStack backpack = equipment.getItem(BACKPACK_EQUIPMENT_SLOT);
+            ItemStack backpack = findMedicalBackpack(equipment);
+
+            if (!isValidBackpackSlot(backpack, backpackSlot)) return;
 
             if (backpack.isEmpty()) return;
 
@@ -63,6 +64,28 @@ public final class MedicalTreatmentHandler {
         });
     }
 
+    private static ItemStack findMedicalBackpack(EquipmentInventory equipment) {
+        if (equipment == null) return ItemStack.EMPTY;
+
+        for (int i = 0; i < equipment.getContainerSize(); i++) {
+            ItemStack stack = equipment.getItem(i);
+
+            if (stack.isEmpty()) continue;
+
+            if (ItemInventory.getSize(stack) > 0) {
+                return stack;
+            }
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    private static boolean isValidBackpackSlot(ItemStack backpack, int slot) {
+        return !backpack.isEmpty()
+                && slot >= 0
+                && slot < ItemInventory.getSize(backpack);
+    }
+
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -76,6 +99,14 @@ public final class MedicalTreatmentHandler {
             PENDING.remove(player.getUUID());
             return;
         }
+
+        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
+            if (data.isInconsciente()) {
+                PENDING.remove(player.getUUID());
+            }
+        });
+
+        if (!PENDING.containsKey(player.getUUID())) return;
 
         treatment.ticksLeft--;
 
@@ -95,14 +126,19 @@ public final class MedicalTreatmentHandler {
         player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
             if (data.getBleeding(treatment.bodyPart) == BleedingType.NONE) {
                 EquipmentInventory equipment = data.getEquipmentInventory();
-                ItemStack backpack = equipment.getItem(BACKPACK_EQUIPMENT_SLOT);
+                ItemStack backpack = findMedicalBackpack(equipment);
+
+                if (!isValidBackpackSlot(backpack, treatment.backpackSlot)) {
+                    syncMedicalState(player, data, backpack);
+                    return;
+                }
 
                 syncMedicalState(player, data, backpack);
                 return;
             }
 
             EquipmentInventory equipment = data.getEquipmentInventory();
-            ItemStack backpack = equipment.getItem(BACKPACK_EQUIPMENT_SLOT);
+            ItemStack backpack = findMedicalBackpack(equipment);
 
             if (backpack.isEmpty()) {
                 syncMedicalState(player, data, backpack);

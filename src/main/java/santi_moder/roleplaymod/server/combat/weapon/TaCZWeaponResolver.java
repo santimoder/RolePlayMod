@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.server.combat.weapon;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,7 +13,7 @@ import java.util.Set;
 
 public final class TaCZWeaponResolver {
 
-    private static final boolean DEBUG_GUN_ID = true;
+    private static final boolean DEBUG_GUN_ID = false;
 
     private static final Map<String, WeaponDamageProfile> WEAPONS = new HashMap<>();
     private static final Set<String> DISCOVERED_GUNS = new HashSet<>();
@@ -101,6 +102,10 @@ public final class TaCZWeaponResolver {
     // ENTRY POINT PRINCIPAL
     // ==========================
     public static WeaponDamageProfile resolveFromPlayer(ServerPlayer player) {
+        if (player == null) {
+            return WeaponDamageProfile.generic();
+        }
+
         ItemStack stack = player.getMainHandItem();
 
         if (stack.isEmpty()) {
@@ -108,6 +113,10 @@ public final class TaCZWeaponResolver {
         }
 
         String gunId = readGunId(stack);
+
+        if (gunId.isBlank()) {
+            gunId = readRegistryId(stack);
+        }
 
         if (DEBUG_GUN_ID) {
             System.out.println("[RolePlayMod][TaCZ] gunId=" + gunId + " stack=" + stack);
@@ -152,19 +161,65 @@ public final class TaCZWeaponResolver {
             return "";
         }
 
-        if (tag.contains("GunId")) {
-            return tag.getString("GunId");
+        String direct = readGunIdFromTag(tag);
+        if (!direct.isBlank()) {
+            return direct;
         }
 
-        if (tag.contains("gun_id")) {
-            return tag.getString("gun_id");
-        }
+        for (String key : tag.getAllKeys()) {
+            if (!tag.contains(key)) continue;
 
-        if (tag.contains("Gun")) {
-            return tag.getString("Gun");
+            try {
+                if (tag.get(key) instanceof CompoundTag nestedTag) {
+                    String nested = readGunIdFromTag(nestedTag);
+
+                    if (!nested.isBlank()) {
+                        return nested;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
         }
 
         return "";
+    }
+
+    private static String readGunIdFromTag(CompoundTag tag) {
+        if (tag == null) return "";
+
+        String[] possibleKeys = {
+                "GunId",
+                "gun_id",
+                "Gun",
+                "gun",
+                "Id",
+                "id",
+                "WeaponId",
+                "weapon_id",
+                "tacz:gun_id"
+        };
+
+        for (String key : possibleKeys) {
+            if (tag.contains(key)) {
+                String value = tag.getString(key);
+
+                if (value != null && !value.isBlank()) {
+                    return value;
+                }
+            }
+        }
+
+        return "";
+    }
+
+    private static String readRegistryId(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return "";
+
+        if (ForgeRegistries.ITEMS.getKey(stack.getItem()) == null) {
+            return "";
+        }
+
+        return ForgeRegistries.ITEMS.getKey(stack.getItem()).toString();
     }
 
     // ==========================

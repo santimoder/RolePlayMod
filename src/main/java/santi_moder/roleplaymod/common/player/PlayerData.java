@@ -25,6 +25,7 @@ public class PlayerData implements IPlayerData {
     private int fatiga = 0;
     private int sueno = 100;
     private int shock = 0;
+    private int unconsciousTicks = 0;
 
     private int staminaRegenBuffer = 0;
 
@@ -57,6 +58,7 @@ public class PlayerData implements IPlayerData {
         this.staminaRegenCooldown = 0;
         this.staminaExhausted = false;
         this.staminaRegenBuffer = 0;
+        this.unconsciousTicks = 0;
 
         applyBodyPartEffects();
     }
@@ -69,6 +71,7 @@ public class PlayerData implements IPlayerData {
         this.fatiga = 0;
         this.sueno = 100;
         this.shock = 0;
+        this.unconsciousTicks = 0;
 
         this.inconsciente = false;
         this.contadorInconsciencias = 0;
@@ -160,11 +163,9 @@ public class PlayerData implements IPlayerData {
 
         int recovery = 1;
 
-        if (sangre <= 25) {
-            recovery = 0;
-        } else if (sangre >= 70) {
-            recovery = 2;
-        }
+        if (sangre >= 80) recovery = 3;
+        else if (sangre >= 60) recovery = 2;
+        else if (sangre <= 25) recovery = 0;
 
         if (getWorstBleeding() == BleedingType.HEAVY) {
             recovery = Math.max(0, recovery - 1);
@@ -178,6 +179,23 @@ public class PlayerData implements IPlayerData {
     @Override
     public boolean isInconsciente() {
         return inconsciente;
+    }
+
+    @Override
+    public int getUnconsciousTicks() {
+        return unconsciousTicks;
+    }
+
+    @Override
+    public void setUnconsciousTicks(int ticks) {
+        unconsciousTicks = Math.max(0, ticks);
+    }
+
+    @Override
+    public void tickUnconsciousTicks() {
+        if (unconsciousTicks > 0) {
+            unconsciousTicks = Math.max(0, unconsciousTicks - 20);
+        }
     }
 
     @Override
@@ -301,12 +319,16 @@ public class PlayerData implements IPlayerData {
         float hpRatio = newHp / (float) maxHp;
 
         if (newHp <= 0) {
-            if (part == BodyPart.HEAD || part == BodyPart.TORSO) {
-                applyBleed(part, BleedingType.HEAVY);
-            } else {
-                applyBleed(part, BleedingType.MEDIUM);
-            }
-        } else if (hpRatio <= 0.35F) {
+            applyBleed(part,
+                    (part == BodyPart.HEAD || part == BodyPart.TORSO)
+                            ? BleedingType.HEAVY
+                            : BleedingType.MEDIUM
+            );
+            return;
+        }
+
+        // Solo daño serio genera bleeding
+        if (hpRatio <= 0.25F) {
             applyBleed(part, BleedingType.MEDIUM);
         }
     }
@@ -322,10 +344,17 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void tickBleeding() {
+        int totalLoss = 0;
+
         for (BleedingType type : bleedings.values()) {
             if (type != null && type != BleedingType.NONE) {
-                sangre = clampPercent(sangre - type.getBloodLoss());
+                totalLoss += type.getBloodLoss();
             }
+        }
+        totalLoss = Math.min(totalLoss, 8);
+
+        if (totalLoss > 0) {
+            setSangre(sangre - totalLoss);
         }
     }
 
@@ -344,13 +373,26 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void applyBodyPartEffects() {
-        canAttack = getBodyHp(BodyPart.LEFT_ARM) > 5 && getBodyHp(BodyPart.RIGHT_ARM) > 5;
-        canSprint = getBodyHp(BodyPart.LEFT_LEG) > 6 && getBodyHp(BodyPart.RIGHT_LEG) > 6;
+
+        boolean armsOk =
+                getBodyHp(BodyPart.LEFT_ARM) > 5 &&
+                        getBodyHp(BodyPart.RIGHT_ARM) > 5;
+
+        boolean legsOk =
+                getBodyHp(BodyPart.LEFT_LEG) > 6 &&
+                        getBodyHp(BodyPart.RIGHT_LEG) > 6;
+
+        canAttack = armsOk;
+        canSprint = legsOk;
 
         staminaMultiplier = getBodyHp(BodyPart.TORSO) <= 20 ? 0.65f : 1.0f;
 
-        visionBlurred = getBodyHp(BodyPart.HEAD) <= 8 || shock >= 65 || sangre <= 35;
+        visionBlurred =
+                getBodyHp(BodyPart.HEAD) <= 8 ||
+                        shock >= 65 ||
+                        sangre <= 35;
 
+        // overrides globales
         if (shock >= 75 || sangre <= 25) {
             canSprint = false;
         }

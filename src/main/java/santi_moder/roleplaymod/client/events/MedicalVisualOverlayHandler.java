@@ -52,12 +52,15 @@ public final class MedicalVisualOverlayHandler {
         if (mc.player == null) return;
 
         mc.player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            if (!data.isInconsciente() && !data.isVisionBlurred()) return;
+            boolean unconscious = data.isInconsciente();
+            boolean blurred = data.isVisionBlurred();
+
+            if (!unconscious && !blurred) return;
 
             int w = mc.getWindow().getGuiScaledWidth();
             int h = mc.getWindow().getGuiScaledHeight();
 
-            int alpha = data.isInconsciente() ? 105 : 45;
+            int alpha = unconscious ? 130 : 45;
             int color = (alpha << 24) | 0x000000;
 
             g.fill(0, 0, w, h, color);

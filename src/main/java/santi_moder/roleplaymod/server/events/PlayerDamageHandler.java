@@ -30,7 +30,7 @@ import java.util.Optional;
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID)
 public final class PlayerDamageHandler {
 
-    private static final boolean DEBUG_DAMAGE_MESSAGES = true;
+    private static final boolean DEBUG_DAMAGE_MESSAGES = false;
 
     private PlayerDamageHandler() {
     }
@@ -39,20 +39,15 @@ public final class PlayerDamageHandler {
     public static void onPlayerHurt(LivingHurtEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (player.level().isClientSide) return;
+        if (player.isDeadOrDying()) return;
+
+        event.setCanceled(true);
 
         CustomDamageType damageType = resolveDamageType(event);
         BodyPart hitPart = resolveHitPart(event, player, damageType);
         Vec3 sourcePosition = resolveSourcePosition(event, player);
 
-        WeaponDamageProfile weaponProfile;
-
-        Entity attacker = event.getSource().getEntity();
-
-        if (attacker instanceof ServerPlayer shooter) {
-            weaponProfile = TaCZWeaponResolver.resolveFromPlayer(shooter);
-        } else {
-            weaponProfile = WeaponDamageProfile.generic();
-        }
+        WeaponDamageProfile weaponProfile = resolveWeaponProfile(event, damageType);
 
         DamageProcessor.applyDamage(
                 player,
@@ -62,8 +57,6 @@ public final class PlayerDamageHandler {
                 sourcePosition,
                 weaponProfile
         );
-
-        event.setCanceled(true);
 
         player.hurtTime = 0;
         player.hurtDuration = 0;
@@ -78,8 +71,26 @@ public final class PlayerDamageHandler {
                     "Daño custom: " + damageType.name()
                             + " / arma=" + weaponProfile.category().name()
                             + " / parte=" + hitPart.name()
+                            + " / raw=" + event.getAmount()
             ));
         }
+    }
+
+    private static WeaponDamageProfile resolveWeaponProfile(
+            LivingHurtEvent event,
+            CustomDamageType damageType
+    ) {
+        if (damageType != CustomDamageType.PROJECTILE) {
+            return WeaponDamageProfile.generic();
+        }
+
+        Entity attacker = event.getSource().getEntity();
+
+        if (attacker instanceof ServerPlayer shooter) {
+            return TaCZWeaponResolver.resolveFromPlayer(shooter);
+        }
+
+        return WeaponDamageProfile.generic();
     }
 
     private static CustomDamageType resolveDamageType(LivingHurtEvent event) {
@@ -231,9 +242,9 @@ public final class PlayerDamageHandler {
         double relativeY = (attacker.getEyeY() - target.getY()) / target.getBbHeight();
 
         if (relativeY >= 0.82D) return BodyPart.HEAD;
-        if (relativeY >= 0.35D) return BodyPart.TORSO;
+        if (relativeY >= 0.45D) return BodyPart.TORSO;
 
-        return BodyPart.TORSO;
+        return Math.random() < 0.5D ? BodyPart.LEFT_LEG : BodyPart.RIGHT_LEG;
     }
 
     private static Vec3 resolveSourcePosition(LivingHurtEvent event, ServerPlayer player) {
