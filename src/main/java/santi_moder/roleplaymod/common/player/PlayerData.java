@@ -351,7 +351,8 @@ public class PlayerData implements IPlayerData {
                 totalLoss += type.getBloodLoss();
             }
         }
-        totalLoss = Math.min(totalLoss, 8);
+
+        totalLoss = Math.min(totalLoss, 6);
 
         if (totalLoss > 0) {
             setSangre(sangre - totalLoss);

@@ -15,10 +15,7 @@ import santi_moder.roleplaymod.client.radio.voice.SimpleVoiceChatPttBridge;
 import santi_moder.roleplaymod.client.screen.BodyStatusScreen;
 import santi_moder.roleplaymod.client.screen.RPInventoryScreen;
 import santi_moder.roleplaymod.item.PhoneItem;
-import santi_moder.roleplaymod.network.ModNetwork;
-import santi_moder.roleplaymod.network.QuickAccessHotbarChangedPacket;
-import santi_moder.roleplaymod.network.QuickAccessTogglePacket;
-import santi_moder.roleplaymod.network.RequestInventoryPacket;
+import santi_moder.roleplaymod.network.*;
 import santi_moder.roleplaymod.network.radio.StartRadioTransmissionPacket;
 import santi_moder.roleplaymod.network.radio.StopRadioTransmissionPacket;
 import santi_moder.roleplaymod.network.radio.ToggleRadioPacket;
@@ -72,7 +69,7 @@ public class ClientKeyHandler {
         // ================= BODY STATUS =================
         while (ModKeyBindings.OPEN_BODY_STATUS.consumeClick()) {
             if (mc.screen == null) {
-                mc.setScreen(new BodyStatusScreen());
+                ModNetwork.STATS_CHANNEL.sendToServer(new RequestTargetDiagnosisC2SPacket());
             }
         }
 

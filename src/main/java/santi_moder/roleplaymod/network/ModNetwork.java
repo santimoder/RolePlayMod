@@ -180,6 +180,41 @@ public class ModNetwork {
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT)
         );
 
+        STATS_CHANNEL.registerMessage(
+                nextStatsId(),
+                RequestTargetDiagnosisC2SPacket.class,
+                RequestTargetDiagnosisC2SPacket::encode,
+                RequestTargetDiagnosisC2SPacket::decode,
+                RequestTargetDiagnosisC2SPacket::handle
+        );
+
+        STATS_CHANNEL.registerMessage(
+                nextStatsId(),
+                OpenTargetDiagnosisS2CPacket.class,
+                OpenTargetDiagnosisS2CPacket::encode,
+                OpenTargetDiagnosisS2CPacket::decode,
+                OpenTargetDiagnosisS2CPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        STATS_CHANNEL.registerMessage(
+                nextStatsId(),
+                OpenSelfDiagnosisS2CPacket.class,
+                OpenSelfDiagnosisS2CPacket::encode,
+                OpenSelfDiagnosisS2CPacket::decode,
+                OpenSelfDiagnosisS2CPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
+        STATS_CHANNEL.registerMessage(
+                nextStatsId(),
+                SyncPatientMedicalDataS2CPacket.class,
+                SyncPatientMedicalDataS2CPacket::encode,
+                SyncPatientMedicalDataS2CPacket::decode,
+                SyncPatientMedicalDataS2CPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
         // RADIO
         INVENTORY_CHANNEL.registerMessage(
                 nextInvId(),

@@ -45,23 +45,23 @@ public final class MedicalUtils {
         if (isMedicallyDead(data)) return 0;
 
         if (data.getBodyHp(BodyPart.HEAD) > 0 && data.getBodyHp(BodyPart.HEAD) <= 3) {
-            return 30 * 20;
+            return 90 * 20;
         }
 
         if (data.getSangre() > 0 && data.getSangre() <= 15) {
-            return 25 * 20;
+            return 75 * 20;
         }
 
         if (data.getShock() >= 90) {
-            return 25 * 20;
+            return 80 * 20;
         }
 
         if (data.getShock() >= 85) {
-            return 15 * 20;
+            return 50 * 20;
         }
 
         if (recentBloodLoss >= 25) {
-            return 15 * 20;
+            return 45 * 20;
         }
 
         return 0;

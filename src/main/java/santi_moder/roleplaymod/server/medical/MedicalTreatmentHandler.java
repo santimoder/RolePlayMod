@@ -16,6 +16,7 @@ import santi_moder.roleplaymod.common.player.IPlayerData;
 import santi_moder.roleplaymod.item.ModItems;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.SyncMedicalBackpackS2CPacket;
+import santi_moder.roleplaymod.network.SyncPatientMedicalDataS2CPacket;
 import santi_moder.roleplaymod.network.SyncPlayerDataPacket;
 import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 
@@ -35,33 +36,59 @@ public final class MedicalTreatmentHandler {
     private MedicalTreatmentHandler() {
     }
 
-    public static void startBandageTreatment(ServerPlayer player, int backpackSlot, BodyPart bodyPart) {
-        if (player == null || bodyPart == null) return;
-        if (player.isDeadOrDying()) return;
+    public static void startBandageTreatment(ServerPlayer healer, int backpackSlot, BodyPart bodyPart, UUID targetUuid) {
+        if (healer == null || bodyPart == null) return;
+        if (healer.isDeadOrDying()) return;
 
-        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            if (data.isInconsciente()) return;
-            if (data.getBleeding(bodyPart) == BleedingType.NONE) return;
+        ServerPlayer patient = resolvePatient(healer, targetUuid);
+        if (patient == null || patient.isDeadOrDying()) return;
 
-            EquipmentInventory equipment = data.getEquipmentInventory();
-            ItemStack backpack = findMedicalBackpack(equipment);
+        if (healer.distanceToSqr(patient) > 16.0D) return;
 
-            if (!isValidBackpackSlot(backpack, backpackSlot)) return;
+        healer.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(healerData -> {
+            if (healerData.isInconsciente()) return;
 
-            if (backpack.isEmpty()) return;
+            patient.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(patientData -> {
+                if (patientData.getBleeding(bodyPart) == BleedingType.NONE) return;
 
-            ItemStack selected = ItemInventory.getItem(backpack, backpackSlot);
+                EquipmentInventory equipment = healerData.getEquipmentInventory();
+                ItemStack backpack = findMedicalBackpack(equipment);
 
-            if (selected.isEmpty()) return;
-            if (!selected.is(ModItems.BANDAGE.get())) return;
+                if (!isValidBackpackSlot(backpack, backpackSlot)) return;
 
-            if (PENDING.containsKey(player.getUUID())) return;
+                ItemStack selected = ItemInventory.getItem(backpack, backpackSlot);
 
-            PENDING.put(
-                    player.getUUID(),
-                    new PendingTreatment(backpackSlot, bodyPart, TREATMENT_TICKS)
-            );
+                if (selected.isEmpty()) return;
+                if (!selected.is(ModItems.BANDAGE.get())) return;
+
+                if (PENDING.containsKey(healer.getUUID())) return;
+
+                PENDING.put(
+                        healer.getUUID(),
+                        new PendingTreatment(
+                                patient.getUUID(),
+                                backpackSlot,
+                                bodyPart,
+                                TREATMENT_TICKS
+                        )
+                );
+            });
         });
+    }
+
+    private static ServerPlayer resolvePatient(ServerPlayer healer, UUID targetUuid) {
+        if (healer == null) return null;
+
+        if (targetUuid == null) {
+            return healer;
+        }
+
+        ServerPlayer target = healer.server.getPlayerList().getPlayer(targetUuid);
+
+        if (target == null) return null;
+        if (target.level() != healer.level()) return null;
+
+        return target;
     }
 
     private static ItemStack findMedicalBackpack(EquipmentInventory equipment) {
@@ -122,52 +149,65 @@ public final class MedicalTreatmentHandler {
         PENDING.remove(player.getUUID());
     }
 
-    private static void finishBandageTreatment(ServerPlayer player, PendingTreatment treatment) {
-        player.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(data -> {
-            if (data.getBleeding(treatment.bodyPart) == BleedingType.NONE) {
-                EquipmentInventory equipment = data.getEquipmentInventory();
+    private static void finishBandageTreatment(ServerPlayer healer, PendingTreatment treatment) {
+        ServerPlayer patient = resolvePatient(healer, treatment.patientUuid);
+        if (patient == null || patient.isDeadOrDying()) return;
+
+        if (healer.distanceToSqr(patient) > 16.0D) return;
+
+        healer.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(healerData -> {
+            if (healerData.isInconsciente()) return;
+
+            patient.getCapability(PlayerDataProvider.PLAYER_DATA).ifPresent(patientData -> {
+                EquipmentInventory equipment = healerData.getEquipmentInventory();
                 ItemStack backpack = findMedicalBackpack(equipment);
 
                 if (!isValidBackpackSlot(backpack, treatment.backpackSlot)) {
-                    syncMedicalState(player, data, backpack);
+                    syncMedicalState(healer, healerData, backpack);
                     return;
                 }
 
-                syncMedicalState(player, data, backpack);
-                return;
-            }
+                if (patientData.getBleeding(treatment.bodyPart) == BleedingType.NONE) {
+                    syncMedicalState(healer, healerData, backpack);
+                    syncPatientIfNeeded(healer, patient, patientData);
+                    return;
+                }
 
-            EquipmentInventory equipment = data.getEquipmentInventory();
-            ItemStack backpack = findMedicalBackpack(equipment);
+                ItemStack bandage = ItemInventory.getItem(backpack, treatment.backpackSlot);
 
-            if (backpack.isEmpty()) {
-                syncMedicalState(player, data, backpack);
-                return;
-            }
+                if (bandage.isEmpty() || !bandage.is(ModItems.BANDAGE.get())) {
+                    syncMedicalState(healer, healerData, backpack);
+                    return;
+                }
 
-            ItemStack bandage = ItemInventory.getItem(backpack, treatment.backpackSlot);
+                bandage.shrink(1);
 
-            if (bandage.isEmpty() || !bandage.is(ModItems.BANDAGE.get())) {
-                syncMedicalState(player, data, backpack);
-                return;
-            }
+                ItemInventory.setItem(
+                        backpack,
+                        treatment.backpackSlot,
+                        bandage.isEmpty() ? ItemStack.EMPTY : bandage
+                );
 
-            bandage.shrink(1);
+                backpack.getOrCreateTag().putLong(
+                        "medical_update_time",
+                        healer.level().getGameTime()
+                );
 
-            ItemInventory.setItem(
-                    backpack,
-                    treatment.backpackSlot,
-                    bandage.isEmpty() ? ItemStack.EMPTY : bandage
-            );
+                patientData.setBleeding(treatment.bodyPart, BleedingType.NONE);
+                patientData.applyBodyPartEffects();
 
-            backpack.getOrCreateTag().putLong(
-                    "medical_update_time",
-                    player.level().getGameTime()
-            );
+                ModNetwork.STATS_CHANNEL.send(
+                        PacketDistributor.PLAYER.with(() -> healer),
+                        new SyncPatientMedicalDataS2CPacket(
+                                patient.getUUID(),
+                                patient.getName().getString(),
+                                patientData
+                        )
+                );
 
-            data.setBleeding(treatment.bodyPart, BleedingType.NONE);
-
-            syncMedicalState(player, data, backpack);
+                syncMedicalState(healer, healerData, backpack);
+                syncPatientIfNeeded(healer, patient, patientData);
+            });
         });
     }
 
@@ -185,6 +225,17 @@ public final class MedicalTreatmentHandler {
         }
     }
 
+    private static void syncPatientIfNeeded(ServerPlayer healer, ServerPlayer patient, IPlayerData patientData) {
+        if (patient == null || patientData == null) return;
+
+        if (patient != healer) {
+            ModNetwork.STATS_CHANNEL.send(
+                    PacketDistributor.PLAYER.with(() -> patient),
+                    new SyncPlayerDataPacket(patientData)
+            );
+        }
+    }
+
     private static List<ItemStack> getBackpackItems(ItemStack backpack) {
         List<ItemStack> items = new ArrayList<>();
 
@@ -196,11 +247,13 @@ public final class MedicalTreatmentHandler {
     }
 
     private static final class PendingTreatment {
+        private final UUID patientUuid;
         private final int backpackSlot;
         private final BodyPart bodyPart;
         private int ticksLeft;
 
-        private PendingTreatment(int backpackSlot, BodyPart bodyPart, int ticksLeft) {
+        private PendingTreatment(UUID patientUuid, int backpackSlot, BodyPart bodyPart, int ticksLeft) {
+            this.patientUuid = patientUuid;
             this.backpackSlot = backpackSlot;
             this.bodyPart = bodyPart;
             this.ticksLeft = ticksLeft;

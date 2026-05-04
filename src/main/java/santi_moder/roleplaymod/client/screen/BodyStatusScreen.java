@@ -9,14 +9,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import santi_moder.roleplaymod.RolePlayMod;
 import santi_moder.roleplaymod.client.data.ClientMedicalBackpackData;
+import santi_moder.roleplaymod.client.data.ClientPatientMedicalData;
 import santi_moder.roleplaymod.client.data.ClientPlayerData;
-import santi_moder.roleplaymod.common.inventory.item.ItemInventory;
 import santi_moder.roleplaymod.common.player.BleedingType;
 import santi_moder.roleplaymod.common.player.BodyPart;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.RequestMedicalBackpackC2SPacket;
 import santi_moder.roleplaymod.network.StartTreatmentC2SPacket;
-import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 
 public class BodyStatusScreen extends Screen {
 
@@ -41,7 +40,11 @@ public class BodyStatusScreen extends Screen {
 
     private static final float BODY_SCALE = 0.30F;
 
+
     private static final int DIAGNOSIS_TICKS_REQUIRED = 100;
+    private final boolean targetMode;
+    private final java.util.UUID targetUuid;
+    private final String targetName;
 
     private int panelX;
     private int panelY;
@@ -60,12 +63,24 @@ public class BodyStatusScreen extends Screen {
     private boolean treating = false;
     private int treatmentTicks = 0;
 
+
     private static final int TREATMENT_TICKS_REQUIRED = 60;
 
     private Button treatButton;
 
-    public BodyStatusScreen() {
-        super(Component.literal("Estado Médico"));
+    private BodyStatusScreen(boolean targetMode, java.util.UUID targetUuid, String targetName) {
+        super(Component.literal(targetMode ? "Paciente: " + targetName : "Estado médico"));
+        this.targetMode = targetMode;
+        this.targetUuid = targetUuid;
+        this.targetName = targetName;
+    }
+
+    public static BodyStatusScreen self() {
+        return new BodyStatusScreen(false, null, null);
+    }
+
+    public static BodyStatusScreen forTarget(java.util.UUID uuid, String name) {
+        return new BodyStatusScreen(true, uuid, name);
     }
 
     @Override
@@ -139,11 +154,7 @@ public class BodyStatusScreen extends Screen {
             treatmentTicks++;
 
             if (treatmentTicks >= TREATMENT_TICKS_REQUIRED) {
-                treating = false;
-                treatmentTicks = 0;
-
-                selectedBackpackSlot = -1;
-                selectedBodyPart = null;
+                resetDiagnosisState();
             }
         }
 
@@ -154,10 +165,14 @@ public class BodyStatusScreen extends Screen {
         if (!diagnosed) return;
         if (selectedBackpackSlot < 0) return;
         if (selectedBodyPart == null) return;
-        if (ClientPlayerData.getBleeding(selectedBodyPart) == BleedingType.NONE) return;
+        if (getBleeding(selectedBodyPart) == BleedingType.NONE) return;
 
         ModNetwork.STATS_CHANNEL.sendToServer(
-                new StartTreatmentC2SPacket(selectedBackpackSlot, selectedBodyPart)
+                new StartTreatmentC2SPacket(
+                        selectedBackpackSlot,
+                        selectedBodyPart,
+                        targetMode ? targetUuid : null
+                )
         );
 
         treating = true;
@@ -170,13 +185,19 @@ public class BodyStatusScreen extends Screen {
     }
 
     private void updateTreatButton() {
+
+        if (diagnoseButton != null && diagnosed) {
+            diagnoseButton.visible = false;
+            diagnoseButton.active = false;
+        }
+
         if (treatButton == null) return;
 
         boolean canTreat = diagnosed
                 && !treating
                 && selectedBackpackSlot >= 0
                 && selectedBodyPart != null
-                && ClientPlayerData.getBleeding(selectedBodyPart) != BleedingType.NONE;
+                && getBleeding(selectedBodyPart) != BleedingType.NONE;
 
         treatButton.visible = diagnosed;
         treatButton.active = canTreat;
@@ -261,7 +282,7 @@ public class BodyStatusScreen extends Screen {
         }
 
         for (BodyPart part : BodyPart.values()) {
-            if (ClientPlayerData.getBleeding(part) == BleedingType.NONE) {
+            if (getBleeding(part) == BleedingType.NONE) {
                 continue;
             }
 
@@ -366,6 +387,24 @@ public class BodyStatusScreen extends Screen {
         }
     }
 
+    private int getSangre() {
+        return targetMode
+                ? ClientPatientMedicalData.getSangre()
+                : ClientPlayerData.getSangre();
+    }
+
+    private int getBodyHp(BodyPart part) {
+        return targetMode
+                ? ClientPatientMedicalData.getBodyHp(part)
+                : ClientPlayerData.getBodyHp(part);
+    }
+
+    private BleedingType getBleeding(BodyPart part) {
+        return targetMode
+                ? ClientPatientMedicalData.getBleeding(part)
+                : ClientPlayerData.getBleeding(part);
+    }
+
     private void renderPanel(GuiGraphics g) {
         g.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + PANEL_HEIGHT, 0xDD101010);
         g.fill(panelX, panelY, panelX + PANEL_WIDTH, panelY + 26, 0xEE1D1D1D);
@@ -373,7 +412,7 @@ public class BodyStatusScreen extends Screen {
 
         g.drawString(
                 this.font,
-                "Estado médico",
+                targetMode ? "Paciente: " + targetName : "Estado médico",
                 panelX + 10,
                 panelY + 9,
                 0xFFFFFFFF,
@@ -408,15 +447,40 @@ public class BodyStatusScreen extends Screen {
         );
     }
 
+    private void resetDiagnosisState() {
+        diagnosing = false;
+        diagnosed = false;
+        diagnosisTicks = 0;
+
+        selectedBackpackSlot = -1;
+        selectedBodyPart = null;
+
+        treating = false;
+        treatmentTicks = 0;
+
+        if (diagnoseButton != null) {
+            diagnoseButton.visible = true;
+            diagnoseButton.active = true;
+            diagnoseButton.setMessage(Component.literal("Diagnosticar"));
+        }
+
+        if (treatButton != null) {
+            treatButton.visible = false;
+            treatButton.active = false;
+            treatButton.setMessage(Component.literal("Tratar"));
+        }
+    }
+
     private void renderMedicalText(GuiGraphics g) {
         int y = panelY + PANEL_HEIGHT - 68;
+        int sangre = getSangre();
 
         g.drawString(
                 this.font,
-                "Sangre: " + ClientPlayerData.getSangre() + "%",
+                "Sangre: " + sangre + "%",
                 panelX + 12,
                 y,
-                getBloodTextColor(ClientPlayerData.getSangre()),
+                getBloodTextColor(sangre),
                 false
         );
     }
@@ -449,8 +513,8 @@ public class BodyStatusScreen extends Screen {
     }
 
     private void renderPart(GuiGraphics g, BodyPart part, ResourceLocation texture) {
-        int hp = ClientPlayerData.getBodyHp(part);
-        int color = getColorByHp(hp);
+        int hp = getBodyHp(part);
+        int color = getColorByHp(part, hp);
 
         float a = ((color >> 24) & 0xFF) / 255.0F;
         float r = ((color >> 16) & 0xFF) / 255.0F;
@@ -463,7 +527,7 @@ public class BodyStatusScreen extends Screen {
     }
 
     private void renderBleeding(GuiGraphics g, BodyPart part) {
-        ResourceLocation bleedTexture = getBleedTexture(ClientPlayerData.getBleeding(part));
+        ResourceLocation bleedTexture = getBleedTexture(getBleeding(part));
         if (bleedTexture == null) return;
 
         BleedMarker marker = getBleedMarker(part);
@@ -499,13 +563,20 @@ public class BodyStatusScreen extends Screen {
         };
     }
 
-    private int getColorByHp(int hp) {
-        return switch (hp) {
-            case 5 -> 0xFF00FF00;
-            case 4, 3 -> 0xFFFFFF00;
-            case 2, 1 -> 0xFFFFA500;
-            default -> 0xFFFF0000;
+    private int getColorByHp(BodyPart part, int hp) {
+        int max = switch (part) {
+            case HEAD -> 20;
+            case TORSO -> 60;
+            case LEFT_ARM, RIGHT_ARM -> 25;
+            case LEFT_LEG, RIGHT_LEG -> 30;
         };
+
+        float ratio = hp / (float) max;
+
+        if (ratio >= 0.70F) return 0xFF00FF00;
+        if (ratio >= 0.40F) return 0xFFFFFF00;
+        if (ratio > 0.0F) return 0xFFFFA500;
+        return 0xFFFF0000;
     }
 
     private int getBloodTextColor(int sangre) {

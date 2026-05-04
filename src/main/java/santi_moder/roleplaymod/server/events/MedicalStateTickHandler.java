@@ -16,6 +16,8 @@ import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID)
 public final class MedicalStateTickHandler {
 
+    private static final int BLEEDING_INTERVAL_TICKS = 20 * 30;
+
     private MedicalStateTickHandler() {
     }
 
@@ -30,21 +32,24 @@ public final class MedicalStateTickHandler {
             BleedingType previousBleeding = data.getWorstBleeding();
             int previousBlood = data.getSangre();
 
-            data.tickBleeding();
+            boolean bleedingTick = player.tickCount % BLEEDING_INTERVAL_TICKS == 0;
 
-            int recentBloodLoss = previousBlood - data.getSangre();
-            int unconsciousTicks = MedicalUtils.getUnconsciousDurationTicks(data, recentBloodLoss);
+            if (bleedingTick) {
+                data.tickBleeding();
 
-            if (unconsciousTicks > 0) {
-                data.setInconsciente(true);
-                data.setUnconsciousTicks(Math.max(data.getUnconsciousTicks(), unconsciousTicks));
+                int recentBloodLoss = previousBlood - data.getSangre();
+                int unconsciousTicks = MedicalUtils.getUnconsciousDurationTicks(data, recentBloodLoss);
+
+                if (unconsciousTicks > 0) {
+                    data.setInconsciente(true);
+                    data.setUnconsciousTicks(Math.max(data.getUnconsciousTicks(), unconsciousTicks));
+                }
             }
 
             data.tickShockRecovery();
             data.applyBodyPartEffects();
 
-            if (previousBleeding != BleedingType.NONE && data.getSangre() < previousBlood) {
-                float intensity = switch (previousBleeding) {
+            if (bleedingTick && previousBleeding != BleedingType.NONE && data.getSangre() < previousBlood) {                float intensity = switch (previousBleeding) {
                     case LIGHT -> 0.25F;
                     case MEDIUM -> 0.45F;
                     case HEAVY -> 0.75F;
