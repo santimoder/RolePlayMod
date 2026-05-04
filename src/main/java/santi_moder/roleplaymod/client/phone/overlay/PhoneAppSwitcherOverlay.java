@@ -49,13 +49,10 @@ public final class PhoneAppSwitcherOverlay {
      */
     private static final double MIN_RENDER_RELATIVE = -0.45D;
     private static final double MAX_RENDER_RELATIVE = 2.45D;
-
-    private boolean active;
-    private int selectedIndex;
-
     private final List<PhoneAppId> cachedApps = new ArrayList<>();
     private final PhoneAppSwitcherMotion motion = new PhoneAppSwitcherMotion();
-
+    private boolean active;
+    private int selectedIndex;
     private boolean pointerDown;
     private boolean dragging;
     private double pressStartX;

@@ -8,7 +8,6 @@ import java.util.List;
 
 public final class WhatsappClientSyncApplier {
 
-    private static WhatsappInitialStateSnapshot pendingInitialSnapshot;
     private static final List<WhatsappChatPayload> pendingChatPayloads = new ArrayList<>();
     private static final List<WhatsappMessageStatusPayload> pendingStatusPayloads = new ArrayList<>();
     private static final List<WhatsappPresencePayload> pendingPresencePayloads = new ArrayList<>();
@@ -17,6 +16,7 @@ public final class WhatsappClientSyncApplier {
     private static final List<CreatedContactPayload> pendingCreatedContactPayloads = new ArrayList<>();
     private static final List<WhatsappChatPayload> pendingOpenedChatPayloads = new ArrayList<>();
     private static final List<String> pendingDeletedChatIds = new ArrayList<>();
+    private static WhatsappInitialStateSnapshot pendingInitialSnapshot;
 
     private WhatsappClientSyncApplier() {
     }
@@ -347,11 +347,6 @@ public final class WhatsappClientSyncApplier {
         );
     }
 
-    public record CreatedContactPayload(
-            WhatsappContactPayload contactPayload,
-            boolean openChatAfterCreate
-    ) {
-    }
     public static void applyDeletedChatId(String chatId) {
         if (chatId != null && !chatId.isBlank()) {
             pendingDeletedChatIds.add(chatId);
@@ -381,5 +376,11 @@ public final class WhatsappClientSyncApplier {
         if (chatId.equals(state.getSelectedChatId())) {
             state.closeChat();
         }
+    }
+
+    public record CreatedContactPayload(
+            WhatsappContactPayload contactPayload,
+            boolean openChatAfterCreate
+    ) {
     }
 }

@@ -59,6 +59,27 @@ public final class WhatsappContact {
         );
     }
 
+    public static WhatsappContact load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        return new WhatsappContact(
+                tag.getString("id"),
+                tag.getString("displayName"),
+                tag.getString("phoneNumber"),
+                tag.getString("photoId"),
+                tag.getString("about"),
+                tag.getBoolean("blocked"),
+                tag.getInt("commonGroupsCount"),
+                tag.getInt("mediaCount")
+        );
+    }
+
+    private static String safe(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
     public String id() {
         return id;
     }
@@ -150,27 +171,6 @@ public final class WhatsappContact {
         tag.putInt("mediaCount", mediaCount);
 
         return tag;
-    }
-
-    public static WhatsappContact load(CompoundTag tag) {
-        if (tag == null) {
-            return null;
-        }
-
-        return new WhatsappContact(
-                tag.getString("id"),
-                tag.getString("displayName"),
-                tag.getString("phoneNumber"),
-                tag.getString("photoId"),
-                tag.getString("about"),
-                tag.getBoolean("blocked"),
-                tag.getInt("commonGroupsCount"),
-                tag.getInt("mediaCount")
-        );
-    }
-
-    private static String safe(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
     }
 
     @Override

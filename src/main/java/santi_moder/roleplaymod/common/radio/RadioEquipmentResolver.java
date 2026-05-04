@@ -10,7 +10,8 @@ import santi_moder.roleplaymod.common.player.IPlayerData;
 public class RadioEquipmentResolver {
 
     public static final Capability<IPlayerData> PLAYER_DATA_CAPABILITY =
-            CapabilityManager.get(new CapabilityToken<>() {});
+            CapabilityManager.get(new CapabilityToken<>() {
+            });
 
     private RadioEquipmentResolver() {
     }

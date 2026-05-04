@@ -5,15 +5,14 @@ import net.minecraft.world.item.ItemStack;
 
 public class RadioData {
 
-    private static final String TAG_FREQUENCY = "radio_frequency";
-    private static final String TAG_POWERED = "radio_powered";
-    private static final String TAG_VOLUME = "radio_volume";
-    private static final String TAG_CHANNEL_NAME = "radio_channel_name";
-
     public static final float DEFAULT_FREQUENCY = 101.5F;
     public static final float MIN_FREQUENCY = 80.0F;
     public static final float MAX_FREQUENCY = 999.9F;
     public static final float STEP = 0.5F;
+    private static final String TAG_FREQUENCY = "radio_frequency";
+    private static final String TAG_POWERED = "radio_powered";
+    private static final String TAG_VOLUME = "radio_volume";
+    private static final String TAG_CHANNEL_NAME = "radio_channel_name";
 
     public static void ensureDefaults(ItemStack stack) {
         CompoundTag tag = stack.getOrCreateTag();

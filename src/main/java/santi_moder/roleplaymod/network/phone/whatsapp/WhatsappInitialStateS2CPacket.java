@@ -9,17 +9,7 @@ import santi_moder.roleplaymod.common.whatsapp.sync.WhatsappInitialStateSnapshot
 
 import java.util.function.Supplier;
 
-public final class WhatsappInitialStateS2CPacket {
-
-    private final WhatsappInitialStateSnapshot snapshot;
-
-    public WhatsappInitialStateS2CPacket(WhatsappInitialStateSnapshot snapshot) {
-        this.snapshot = snapshot;
-    }
-
-    public WhatsappInitialStateSnapshot snapshot() {
-        return snapshot;
-    }
+public record WhatsappInitialStateS2CPacket(WhatsappInitialStateSnapshot snapshot) {
 
     public static void encode(WhatsappInitialStateS2CPacket packet, FriendlyByteBuf buf) {
         WhatsappInitialStateSnapshot.encode(buf, packet.snapshot);

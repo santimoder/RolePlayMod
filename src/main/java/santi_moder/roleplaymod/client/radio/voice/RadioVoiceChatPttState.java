@@ -7,11 +7,11 @@ public final class RadioVoiceChatPttState {
     private RadioVoiceChatPttState() {
     }
 
-    public static void setRadioPttDown(boolean down) {
-        radioPttDown = down;
-    }
-
     public static boolean isRadioPttDown() {
         return radioPttDown;
+    }
+
+    public static void setRadioPttDown(boolean down) {
+        radioPttDown = down;
     }
 }

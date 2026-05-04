@@ -7,16 +7,10 @@ import santi_moder.roleplaymod.common.whatsapp.server.WhatsappServerService;
 
 import java.util.function.Supplier;
 
-public final class WhatsappToggleBlockContactC2SPacket {
-
-    private final String contactId;
+public record WhatsappToggleBlockContactC2SPacket(String contactId) {
 
     public WhatsappToggleBlockContactC2SPacket(String contactId) {
         this.contactId = contactId == null ? "" : contactId;
-    }
-
-    public String contactId() {
-        return contactId;
     }
 
     public static void encode(WhatsappToggleBlockContactC2SPacket packet, FriendlyByteBuf buf) {

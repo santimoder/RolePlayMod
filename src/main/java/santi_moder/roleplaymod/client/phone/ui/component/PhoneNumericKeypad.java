@@ -40,6 +40,10 @@ public final class PhoneNumericKeypad {
         );
     }
 
+    private static int getLayoutColumns() {
+        return 3;
+    }
+
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY) {
         for (int row = 0; row < LAYOUT.length; row++) {
             for (int col = 0; col < LAYOUT[row].length; col++) {
@@ -77,9 +81,5 @@ public final class PhoneNumericKeypad {
         }
 
         return null;
-    }
-
-    private static int getLayoutColumns() {
-        return 3;
     }
 }

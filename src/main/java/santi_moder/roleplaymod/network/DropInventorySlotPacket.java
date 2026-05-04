@@ -115,60 +115,47 @@ public class DropInventorySlotPacket {
     }
 
     private static ItemStack getStack(InventorySlot slot, EquipmentInventory equipment, ServerPlayer player) {
-        return switch (slot.getType()) {
-            case EQUIPMENT, CLOTHS ->
-                    equipment.getItem(slot.getIndex());
+        return switch (slot.type()) {
+            case EQUIPMENT, CLOTHS -> equipment.getItem(slot.index());
 
-            case HOTBAR ->
-                    InventorySlotSecurity.isValidVanillaIndex(slot.getVanillaIndex(), player)
-                            ? player.getInventory().items.get(slot.getVanillaIndex())
-                            : ItemStack.EMPTY;
+            case HOTBAR -> InventorySlotSecurity.isValidVanillaIndex(slot.vanillaIndex(), player)
+                    ? player.getInventory().items.get(slot.vanillaIndex())
+                    : ItemStack.EMPTY;
 
-            case JACKET_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(5), slot.getStorageIndex());
+            case JACKET_STORAGE -> ItemInventory.getItem(equipment.getItem(5), slot.storageIndex());
 
-            case PANTS_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(6), slot.getStorageIndex());
+            case PANTS_STORAGE -> ItemInventory.getItem(equipment.getItem(6), slot.storageIndex());
 
-            case VEST_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(2), slot.getStorageIndex());
+            case VEST_STORAGE -> ItemInventory.getItem(equipment.getItem(2), slot.storageIndex());
 
-            case BELT_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(3), slot.getStorageIndex());
+            case BELT_STORAGE -> ItemInventory.getItem(equipment.getItem(3), slot.storageIndex());
 
-            case BACKPACK_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(1), slot.getStorageIndex());
+            case BACKPACK_STORAGE -> ItemInventory.getItem(equipment.getItem(1), slot.storageIndex());
         };
     }
 
     private static void setStack(InventorySlot slot, EquipmentInventory equipment, ServerPlayer player, ItemStack stack) {
-        switch (slot.getType()) {
-            case EQUIPMENT, CLOTHS ->
-                    equipment.setItem(slot.getIndex(), stack);
+        switch (slot.type()) {
+            case EQUIPMENT, CLOTHS -> equipment.setItem(slot.index(), stack);
 
             case HOTBAR -> {
-                if (InventorySlotSecurity.isValidVanillaIndex(slot.getVanillaIndex(), player)) {
+                if (InventorySlotSecurity.isValidVanillaIndex(slot.vanillaIndex(), player)) {
                     player.getInventory().items.set(
-                            slot.getVanillaIndex(),
+                            slot.vanillaIndex(),
                             stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copy()
                     );
                 }
             }
 
-            case JACKET_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(5), slot.getStorageIndex(), stack);
+            case JACKET_STORAGE -> ItemInventory.setItem(equipment.getItem(5), slot.storageIndex(), stack);
 
-            case PANTS_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(6), slot.getStorageIndex(), stack);
+            case PANTS_STORAGE -> ItemInventory.setItem(equipment.getItem(6), slot.storageIndex(), stack);
 
-            case VEST_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(2), slot.getStorageIndex(), stack);
+            case VEST_STORAGE -> ItemInventory.setItem(equipment.getItem(2), slot.storageIndex(), stack);
 
-            case BELT_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(3), slot.getStorageIndex(), stack);
+            case BELT_STORAGE -> ItemInventory.setItem(equipment.getItem(3), slot.storageIndex(), stack);
 
-            case BACKPACK_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(1), slot.getStorageIndex(), stack);
+            case BACKPACK_STORAGE -> ItemInventory.setItem(equipment.getItem(1), slot.storageIndex(), stack);
         }
     }
 }

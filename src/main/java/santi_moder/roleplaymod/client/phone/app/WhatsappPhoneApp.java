@@ -16,11 +16,9 @@ import santi_moder.roleplaymod.network.phone.whatsapp.*;
 
 public class WhatsappPhoneApp extends AbstractPhoneApp {
 
-    private boolean requestedInitialSync = false;
     private static final int TITLE_Y = 34;
     private static final int CONTENT_Y = 70;
     private static final int SEARCH_MAX_LENGTH = 40;
-
     private final WhatsappBottomNav bottomNav = new WhatsappBottomNav();
     private final WhatsappChatsView chatsView = new WhatsappChatsView();
     private final WhatsappConversationView conversationView = new WhatsappConversationView();
@@ -30,7 +28,7 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
     private final WhatsappNewContactView newContactView = new WhatsappNewContactView();
     private final WhatsappProfileView profileView = new WhatsappProfileView();
     private final WhatsappState state = new WhatsappState();
-
+    private boolean requestedInitialSync = false;
     private WhatsappTab activeTab = WhatsappTab.CHATS;
     private String chatsSearchQuery = "";
     private boolean waitingOpenConversationFromServer = false;

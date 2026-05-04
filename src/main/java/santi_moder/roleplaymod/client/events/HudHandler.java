@@ -16,20 +16,20 @@ public class HudHandler {
 
     private static final Minecraft mc = Minecraft.getInstance();
     private static final int SIZE = 32; // Tamaño de cada ícono
-    private static final int GAP  = 5;  // Espacio entre íconos
+    private static final int GAP = 5;  // Espacio entre íconos
 
     // Arrays de texturas, 11 texturas por stat (0% a 100%)
-    private static final ResourceLocation[] BLOOD_TEXTURES   = new ResourceLocation[11];
+    private static final ResourceLocation[] BLOOD_TEXTURES = new ResourceLocation[11];
     private static final ResourceLocation[] STAMINA_TEXTURES = new ResourceLocation[11];
-    private static final ResourceLocation[] HUNGER_TEXTURES  = new ResourceLocation[11];
-    private static final ResourceLocation[] THIRST_TEXTURES  = new ResourceLocation[11];
+    private static final ResourceLocation[] HUNGER_TEXTURES = new ResourceLocation[11];
+    private static final ResourceLocation[] THIRST_TEXTURES = new ResourceLocation[11];
 
     static {
         for (int i = 0; i <= 10; i++) {
-            BLOOD_TEXTURES[i]   = new ResourceLocation("roleplaymod", "textures/gui/blood_" + i*10 + ".png");
-            STAMINA_TEXTURES[i] = new ResourceLocation("roleplaymod", "textures/gui/stamina_" + i*10 + ".png");
-            HUNGER_TEXTURES[i]  = new ResourceLocation("roleplaymod", "textures/gui/hunger_" + i*10 + ".png");
-            THIRST_TEXTURES[i]  = new ResourceLocation("roleplaymod", "textures/gui/thirst_" + i*10 + ".png");
+            BLOOD_TEXTURES[i] = new ResourceLocation("roleplaymod", "textures/gui/blood_" + i * 10 + ".png");
+            STAMINA_TEXTURES[i] = new ResourceLocation("roleplaymod", "textures/gui/stamina_" + i * 10 + ".png");
+            HUNGER_TEXTURES[i] = new ResourceLocation("roleplaymod", "textures/gui/hunger_" + i * 10 + ".png");
+            THIRST_TEXTURES[i] = new ResourceLocation("roleplaymod", "textures/gui/thirst_" + i * 10 + ".png");
         }
     }
 
@@ -67,7 +67,7 @@ public class HudHandler {
         if (mc.player == null) return;
 
         int xBase = 10; // margen desde la esquina izquierda
-        int y     = mc.getWindow().getGuiScaledHeight() - SIZE - 10; // margen desde la esquina inferior
+        int y = mc.getWindow().getGuiScaledHeight() - SIZE - 10; // margen desde la esquina inferior
         int x = xBase;
 
         // === Sangre ===

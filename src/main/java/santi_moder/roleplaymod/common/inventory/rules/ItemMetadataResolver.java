@@ -42,15 +42,15 @@ public class ItemMetadataResolver {
     }
 
     public static ItemCategory getCategory(ItemStack stack) {
-        return resolve(stack).getCategory();
+        return resolve(stack).category();
     }
 
     public static ItemSize getSize(ItemStack stack) {
-        return resolve(stack).getSize();
+        return resolve(stack).size();
     }
 
     public static float getWeight(ItemStack stack) {
-        return resolve(stack).getWeight();
+        return resolve(stack).weight();
     }
 
     private static boolean isPistol(ItemStack stack) {

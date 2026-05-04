@@ -4,19 +4,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 
-public final class PhoneModal {
-
-    private final int x;
-    private final int y;
-    private final int width;
-    private final int height;
-
-    public PhoneModal(int x, int y, int width, int height) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-    }
+public record PhoneModal(int x, int y, int width, int height) {
 
     public static PhoneModal centered(PhoneScreen screen, int width, int height) {
         int x = screen.getPhoneCenterX() - width / 2;
@@ -71,21 +59,5 @@ public final class PhoneModal {
 
     public boolean isInside(double mouseX, double mouseY) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
-    }
-
-    public int x() {
-        return x;
-    }
-
-    public int y() {
-        return y;
-    }
-
-    public int width() {
-        return width;
-    }
-
-    public int height() {
-        return height;
     }
 }

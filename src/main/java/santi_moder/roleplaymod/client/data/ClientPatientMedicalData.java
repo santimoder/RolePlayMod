@@ -10,17 +10,16 @@ import java.util.UUID;
 
 public final class ClientPatientMedicalData {
 
+    private static final Map<BodyPart, Integer> bodyHp = new EnumMap<>(BodyPart.class);
+    private static final Map<BodyPart, BleedingType> bleedings = new EnumMap<>(BodyPart.class);
     private static UUID targetUuid;
     private static String targetName = "";
-
     private static int sangre;
     private static int shock;
     private static boolean inconsciente;
 
-    private static final Map<BodyPart, Integer> bodyHp = new EnumMap<>(BodyPart.class);
-    private static final Map<BodyPart, BleedingType> bleedings = new EnumMap<>(BodyPart.class);
-
-    private ClientPatientMedicalData() {}
+    private ClientPatientMedicalData() {
+    }
 
     public static void set(UUID uuid, String name, int blood, int shockValue, boolean unconscious, CompoundTag bodyTag) {
         targetUuid = uuid;
@@ -31,11 +30,25 @@ public final class ClientPatientMedicalData {
         applyBodyParts(bodyTag);
     }
 
-    public static UUID getTargetUuid() { return targetUuid; }
-    public static String getTargetName() { return targetName; }
-    public static int getSangre() { return sangre; }
-    public static int getShock() { return shock; }
-    public static boolean isInconsciente() { return inconsciente; }
+    public static UUID getTargetUuid() {
+        return targetUuid;
+    }
+
+    public static String getTargetName() {
+        return targetName;
+    }
+
+    public static int getSangre() {
+        return sangre;
+    }
+
+    public static int getShock() {
+        return shock;
+    }
+
+    public static boolean isInconsciente() {
+        return inconsciente;
+    }
 
     public static int getBodyHp(BodyPart part) {
         return bodyHp.getOrDefault(part, 0);

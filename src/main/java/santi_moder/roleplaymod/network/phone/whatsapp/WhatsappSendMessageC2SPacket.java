@@ -7,22 +7,11 @@ import santi_moder.roleplaymod.common.whatsapp.server.WhatsappServerService;
 
 import java.util.function.Supplier;
 
-public final class WhatsappSendMessageC2SPacket {
-
-    private final String contactId;
-    private final String text;
+public record WhatsappSendMessageC2SPacket(String contactId, String text) {
 
     public WhatsappSendMessageC2SPacket(String contactId, String text) {
         this.contactId = contactId == null ? "" : contactId;
         this.text = text == null ? "" : text;
-    }
-
-    public String contactId() {
-        return contactId;
-    }
-
-    public String text() {
-        return text;
     }
 
     public static void encode(WhatsappSendMessageC2SPacket packet, FriendlyByteBuf buf) {

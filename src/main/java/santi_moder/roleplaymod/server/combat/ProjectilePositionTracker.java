@@ -3,11 +3,7 @@ package santi_moder.roleplaymod.server.combat;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public final class ProjectilePositionTracker {
 

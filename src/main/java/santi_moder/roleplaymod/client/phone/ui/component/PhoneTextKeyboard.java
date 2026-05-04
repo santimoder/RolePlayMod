@@ -11,9 +11,9 @@ public final class PhoneTextKeyboard {
     public static final String KEY_OK = "OK";
     public static final String KEY_CLEAR = "CLR";
 
-    private static final String[] ROW_1 = {"Q","W","E","R","T","Y","U","I","O","P"};
-    private static final String[] ROW_2 = {"A","S","D","F","G","H","J","K","L"};
-    private static final String[] ROW_3 = {"Z","X","C","V","B","N","M"};
+    private static final String[] ROW_1 = {"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"};
+    private static final String[] ROW_2 = {"A", "S", "D", "F", "G", "H", "J", "K", "L"};
+    private static final String[] ROW_3 = {"Z", "X", "C", "V", "B", "N", "M"};
 
     private final int keyWidth;
     private final int keyHeight;

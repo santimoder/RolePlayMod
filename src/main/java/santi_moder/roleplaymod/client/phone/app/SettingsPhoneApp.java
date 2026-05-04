@@ -308,7 +308,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                     : "Activar Face ID";
             PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 116, faceIdLabel);
         }
-}
+    }
 
     private void renderSecurityPad(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, ItemStack stack) {
         PhoneNumericKeypad keypad = PhoneNumericKeypad.defaultPinPad(screen);
@@ -1007,6 +1007,10 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         return currentCategory.title;
     }
 
+    private void sendPhoneSettingUpdate(String action, String value) {
+        ModNetwork.sendInventoryToServer(new PhoneSettingsUpdateC2SPacket(action, value));
+    }
+
     private enum SettingsCategory {
         HOME("Configuracion"),
         PROFILE("Perfil"),
@@ -1021,10 +1025,6 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         SettingsCategory(String title) {
             this.title = title;
         }
-    }
-
-    private void sendPhoneSettingUpdate(String action, String value) {
-        ModNetwork.sendInventoryToServer(new PhoneSettingsUpdateC2SPacket(action, value));
     }
 
     private enum SecurityFlowState {

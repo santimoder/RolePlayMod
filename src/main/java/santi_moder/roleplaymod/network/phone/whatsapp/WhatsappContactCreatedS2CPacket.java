@@ -9,23 +9,7 @@ import santi_moder.roleplaymod.common.whatsapp.sync.WhatsappContactPayload;
 
 import java.util.function.Supplier;
 
-public final class WhatsappContactCreatedS2CPacket {
-
-    private final WhatsappContactPayload payload;
-    private final boolean openChatAfterCreate;
-
-    public WhatsappContactCreatedS2CPacket(WhatsappContactPayload payload, boolean openChatAfterCreate) {
-        this.payload = payload;
-        this.openChatAfterCreate = openChatAfterCreate;
-    }
-
-    public WhatsappContactPayload payload() {
-        return payload;
-    }
-
-    public boolean openChatAfterCreate() {
-        return openChatAfterCreate;
-    }
+public record WhatsappContactCreatedS2CPacket(WhatsappContactPayload payload, boolean openChatAfterCreate) {
 
     public static void encode(WhatsappContactCreatedS2CPacket packet, FriendlyByteBuf buf) {
         WhatsappContactPayload.encode(buf, packet.payload);

@@ -49,7 +49,8 @@ public final class MedicalStateTickHandler {
             data.tickShockRecovery();
             data.applyBodyPartEffects();
 
-            if (bleedingTick && previousBleeding != BleedingType.NONE && data.getSangre() < previousBlood) {                float intensity = switch (previousBleeding) {
+            if (bleedingTick && previousBleeding != BleedingType.NONE && data.getSangre() < previousBlood) {
+                float intensity = switch (previousBleeding) {
                     case LIGHT -> 0.25F;
                     case MEDIUM -> 0.45F;
                     case HEAVY -> 0.75F;

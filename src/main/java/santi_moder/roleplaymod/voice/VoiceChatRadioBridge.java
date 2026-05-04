@@ -23,6 +23,10 @@ public class VoiceChatRadioBridge {
     private VoiceChatRadioBridge() {
     }
 
+    public static VoicechatServerApi getServerApi() {
+        return serverApi;
+    }
+
     public static void setServerApi(VoicechatServerApi api) {
         serverApi = api;
         RolePlayMod.LOGGER.info("[RADIO] VoiceChat API {}", api != null ? "cargada" : "limpiada");
@@ -30,10 +34,6 @@ public class VoiceChatRadioBridge {
         if (api == null) {
             RADIO_CHANNELS.clear();
         }
-    }
-
-    public static VoicechatServerApi getServerApi() {
-        return serverApi;
     }
 
     public static boolean isAvailable() {
@@ -84,7 +84,7 @@ public class VoiceChatRadioBridge {
 
             if (channel == null) {
                 UUID channelId = UUID.nameUUIDFromBytes(
-                        (senderId.toString() + ":" + listener.getUUID()).getBytes(StandardCharsets.UTF_8)
+                        (senderId + ":" + listener.getUUID()).getBytes(StandardCharsets.UTF_8)
                 );
 
                 channel = serverApi.createStaticAudioChannel(

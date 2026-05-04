@@ -15,35 +15,39 @@ import java.util.Optional;
 public class ModNetwork {
 
     private static final String PROTOCOL_VERSION = "1";
-
-    private static int statsPacketId = 0;
-    private static int invPacketId = 0;
-    private static int whatsappPacketId = 0;
-
-    private static int nextStatsId() { return statsPacketId++; }
-    private static int nextInvId() { return invPacketId++; }
-    private static int nextWhatsappId() { return whatsappPacketId++; }
-
     public static final SimpleChannel STATS_CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(RolePlayMod.MOD_ID, "stats_channel"),
             () -> PROTOCOL_VERSION,
             PROTOCOL_VERSION::equals,
             PROTOCOL_VERSION::equals
     );
-
     public static final SimpleChannel INVENTORY_CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(RolePlayMod.MOD_ID, "inventory_channel"),
             () -> PROTOCOL_VERSION,
             PROTOCOL_VERSION::equals,
             PROTOCOL_VERSION::equals
     );
-
     public static final SimpleChannel WHATSAPP_CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(RolePlayMod.MOD_ID, "whatsapp_channel"),
             () -> PROTOCOL_VERSION,
             PROTOCOL_VERSION::equals,
             PROTOCOL_VERSION::equals
     );
+    private static int statsPacketId = 0;
+    private static int invPacketId = 0;
+    private static int whatsappPacketId = 0;
+
+    private static int nextStatsId() {
+        return statsPacketId++;
+    }
+
+    private static int nextInvId() {
+        return invPacketId++;
+    }
+
+    private static int nextWhatsappId() {
+        return whatsappPacketId++;
+    }
 
     public static void register() {
 

@@ -1,11 +1,11 @@
 package santi_moder.roleplaymod;
 
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import santi_moder.roleplaymod.item.ModItems;
-import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.slf4j.Logger;
+import santi_moder.roleplaymod.item.ModItems;
 import santi_moder.roleplaymod.network.ModNetwork;
 
 @Mod(RolePlayMod.MOD_ID)

@@ -2,7 +2,6 @@ package santi_moder.roleplaymod.client.phone.app;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
-import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.phone.PhoneAppId;
 import santi_moder.roleplaymod.common.phone.PhoneData;

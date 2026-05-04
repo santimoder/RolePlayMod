@@ -243,7 +243,8 @@ public final class DamageProcessor {
         int bloodLoss = switch (part) {
             case HEAD -> Math.max(1, damage / 2);
             case TORSO -> Math.max(1, damage / 3);
-            case LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG -> severity == DamageSeverity.CRITICAL ? Math.max(1, damage / 4) : 0;
+            case LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG ->
+                    severity == DamageSeverity.CRITICAL ? Math.max(1, damage / 4) : 0;
         };
 
         int shock = Math.max(2, shockFor(severity) / 2);

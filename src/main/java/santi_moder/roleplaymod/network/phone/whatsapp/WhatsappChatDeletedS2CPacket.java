@@ -8,16 +8,10 @@ import santi_moder.roleplaymod.client.phone.app.whatsapp.WhatsappClientSyncAppli
 
 import java.util.function.Supplier;
 
-public final class WhatsappChatDeletedS2CPacket {
-
-    private final String chatId;
+public record WhatsappChatDeletedS2CPacket(String chatId) {
 
     public WhatsappChatDeletedS2CPacket(String chatId) {
         this.chatId = chatId == null ? "" : chatId;
-    }
-
-    public String chatId() {
-        return chatId;
     }
 
     public static void encode(WhatsappChatDeletedS2CPacket packet, FriendlyByteBuf buf) {

@@ -6,21 +6,7 @@ import santi_moder.roleplaymod.client.screen.PhoneScreen;
 
 import java.util.List;
 
-public final class PhoneListView {
-
-    private final int x;
-    private final int startY;
-    private final int width;
-    private final int rowHeight;
-    private final int rowGap;
-
-    public PhoneListView(int x, int startY, int width, int rowHeight, int rowGap) {
-        this.x = x;
-        this.startY = startY;
-        this.width = width;
-        this.rowHeight = rowHeight;
-        this.rowGap = rowGap;
-    }
+public record PhoneListView(int x, int startY, int width, int rowHeight, int rowGap) {
 
     public static PhoneListView defaultSettingsList(PhoneScreen screen) {
         return new PhoneListView(
@@ -51,25 +37,5 @@ public final class PhoneListView {
 
     public int getRowY(int index) {
         return startY + index * (rowHeight + rowGap);
-    }
-
-    public int x() {
-        return x;
-    }
-
-    public int startY() {
-        return startY;
-    }
-
-    public int width() {
-        return width;
-    }
-
-    public int rowHeight() {
-        return rowHeight;
-    }
-
-    public int rowGap() {
-        return rowGap;
     }
 }

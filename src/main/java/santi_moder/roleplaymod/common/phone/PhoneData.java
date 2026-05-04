@@ -9,23 +9,19 @@ public final class PhoneData {
     public static final String WALLPAPER_BLUE = PhoneDataDefaults.WALLPAPER_BLUE;
     public static final String WALLPAPER_DARK = PhoneDataDefaults.WALLPAPER_DARK;
     public static final String WALLPAPER_CUSTOM = "custom";
-
-    public static boolean isCustomWallpaperSelected(ItemStack stack) {
-        return WALLPAPER_CUSTOM.equals(getWallpaper(stack));
-    }
-
     public static final String DEFAULT_DEVICE_NAME = PhoneDataDefaults.DEFAULT_DEVICE_NAME;
     public static final String DEFAULT_MODEL = PhoneDataDefaults.DEFAULT_MODEL;
     public static final String DEFAULT_PASSCODE = PhoneDataDefaults.DEFAULT_PASSCODE;
-
     public static final String THEME_DARK = PhoneDataDefaults.THEME_DARK;
     public static final String THEME_LIGHT = PhoneDataDefaults.THEME_LIGHT;
-
     public static final String SIZE_SMALL = PhoneDataDefaults.SIZE_SMALL;
     public static final String SIZE_NORMAL = PhoneDataDefaults.SIZE_NORMAL;
     public static final String SIZE_LARGE = PhoneDataDefaults.SIZE_LARGE;
-
     private PhoneData() {
+    }
+
+    public static boolean isCustomWallpaperSelected(ItemStack stack) {
+        return WALLPAPER_CUSTOM.equals(getWallpaper(stack));
     }
 
     public static void initializeIfMissing(ItemStack stack) {

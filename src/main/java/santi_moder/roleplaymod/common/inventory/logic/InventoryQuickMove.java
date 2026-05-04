@@ -84,7 +84,7 @@ public final class InventoryQuickMove {
             ItemStack containerStack = getContainerStack(target, equipment);
             int validationIndex = getValidationIndex(target);
 
-            if (!SlotValidator.isValid(stack, target.getType(), validationIndex, containerStack)) {
+            if (!SlotValidator.isValid(stack, target.type(), validationIndex, containerStack)) {
                 continue;
             }
 
@@ -95,8 +95,8 @@ public final class InventoryQuickMove {
                 Comparator
                         .comparingInt((InventorySlot slot) -> getTargetPriority(stack, slot))
                         .thenComparingInt(slot -> getStack(slot, equipment, player).isEmpty() ? 1 : 0)
-                        .thenComparingInt(InventorySlot::getStorageIndex)
-                        .thenComparingInt(InventorySlot::getIndex)
+                        .thenComparingInt(InventorySlot::storageIndex)
+                        .thenComparingInt(InventorySlot::index)
         );
 
         return validTargets;
@@ -106,15 +106,15 @@ public final class InventoryQuickMove {
         ItemCategory category = ItemMetadataResolver.getCategory(stack);
 
         if (category == ItemCategory.RADIO) {
-            if (target.getType() == SlotType.VEST_STORAGE && target.getStorageIndex() == 0) return 0;
-            if (target.getType() == SlotType.BELT_STORAGE) return 1;
-            if (target.getType() == SlotType.BACKPACK_STORAGE) return 20;
+            if (target.type() == SlotType.VEST_STORAGE && target.storageIndex() == 0) return 0;
+            if (target.type() == SlotType.BELT_STORAGE) return 1;
+            if (target.type() == SlotType.BACKPACK_STORAGE) return 20;
             return 100;
         }
 
         if (category == ItemCategory.AMMO) {
-            if (target.getType() == SlotType.VEST_STORAGE) return 0;
-            if (target.getType() == SlotType.BACKPACK_STORAGE) return 10;
+            if (target.type() == SlotType.VEST_STORAGE) return 0;
+            if (target.type() == SlotType.BACKPACK_STORAGE) return 10;
             return 100;
         }
 
@@ -122,26 +122,26 @@ public final class InventoryQuickMove {
                 || category == ItemCategory.TASER
                 || category == ItemCategory.HANDCUFFS
                 || category == ItemCategory.BATON) {
-            if (target.getType() == SlotType.BELT_STORAGE) return 0;
-            if (target.getType() == SlotType.BACKPACK_STORAGE) return 10;
+            if (target.type() == SlotType.BELT_STORAGE) return 0;
+            if (target.type() == SlotType.BACKPACK_STORAGE) return 10;
             return 100;
         }
 
         return switch (ItemMetadataResolver.getSize(stack)) {
             case SMALL -> {
-                if (target.getType() == SlotType.PANTS_STORAGE) yield 0;
-                if (target.getType() == SlotType.JACKET_STORAGE) yield 1;
-                if (target.getType() == SlotType.BACKPACK_STORAGE) yield 10;
+                if (target.type() == SlotType.PANTS_STORAGE) yield 0;
+                if (target.type() == SlotType.JACKET_STORAGE) yield 1;
+                if (target.type() == SlotType.BACKPACK_STORAGE) yield 10;
                 yield 100;
             }
 
             case MEDIUM -> {
-                if (target.getType() == SlotType.BACKPACK_STORAGE) yield 0;
+                if (target.type() == SlotType.BACKPACK_STORAGE) yield 0;
                 yield 100;
             }
 
             case LARGE -> {
-                if (target.getType() == SlotType.BACKPACK_STORAGE) yield 0;
+                if (target.type() == SlotType.BACKPACK_STORAGE) yield 0;
                 yield 100;
             }
         };
@@ -158,7 +158,7 @@ public final class InventoryQuickMove {
         ItemStack containerStack = getContainerStack(target, equipment);
         int validationIndex = getValidationIndex(target);
 
-        if (!SlotValidator.isValid(stack, target.getType(), validationIndex, containerStack)) {
+        if (!SlotValidator.isValid(stack, target.type(), validationIndex, containerStack)) {
             return stack;
         }
 
@@ -193,31 +193,31 @@ public final class InventoryQuickMove {
     }
 
     private static boolean isSameSlot(InventorySlot a, InventorySlot b) {
-        return a.getType() == b.getType()
-                && a.getIndex() == b.getIndex()
-                && a.getStorageIndex() == b.getStorageIndex()
-                && a.getVanillaIndex() == b.getVanillaIndex();
+        return a.type() == b.type()
+                && a.index() == b.index()
+                && a.storageIndex() == b.storageIndex()
+                && a.vanillaIndex() == b.vanillaIndex();
     }
 
     private static boolean isSameContainer(InventorySlot source, InventorySlot target) {
-        if (!isStorageSlot(source.getType()) || !isStorageSlot(target.getType())) {
+        if (!isStorageSlot(source.type()) || !isStorageSlot(target.type())) {
             return false;
         }
 
-        return source.getType() == target.getType();
+        return source.type() == target.type();
     }
 
     private static boolean wouldInsertItemIntoItself(InventorySlot source, InventorySlot target) {
-        if (source.getType() != SlotType.EQUIPMENT && source.getType() != SlotType.CLOTHS) {
+        if (source.type() != SlotType.EQUIPMENT && source.type() != SlotType.CLOTHS) {
             return false;
         }
 
-        return switch (source.getIndex()) {
-            case 1 -> target.getType() == SlotType.BACKPACK_STORAGE;
-            case 2 -> target.getType() == SlotType.VEST_STORAGE;
-            case 3 -> target.getType() == SlotType.BELT_STORAGE;
-            case 5 -> target.getType() == SlotType.JACKET_STORAGE;
-            case 6 -> target.getType() == SlotType.PANTS_STORAGE;
+        return switch (source.index()) {
+            case 1 -> target.type() == SlotType.BACKPACK_STORAGE;
+            case 2 -> target.type() == SlotType.VEST_STORAGE;
+            case 3 -> target.type() == SlotType.BELT_STORAGE;
+            case 5 -> target.type() == SlotType.JACKET_STORAGE;
+            case 6 -> target.type() == SlotType.PANTS_STORAGE;
             default -> false;
         };
     }
@@ -231,33 +231,33 @@ public final class InventoryQuickMove {
     }
 
     private static ItemStack getStack(InventorySlot slot, EquipmentInventory equipment, Player player) {
-        return switch (slot.getType()) {
-            case EQUIPMENT, CLOTHS -> equipment.getItem(slot.getIndex());
-            case HOTBAR -> player.getInventory().items.get(slot.getVanillaIndex());
-            case JACKET_STORAGE -> ItemInventory.getItem(equipment.getItem(5), slot.getStorageIndex());
-            case PANTS_STORAGE -> ItemInventory.getItem(equipment.getItem(6), slot.getStorageIndex());
-            case VEST_STORAGE -> ItemInventory.getItem(equipment.getItem(2), slot.getStorageIndex());
-            case BELT_STORAGE -> ItemInventory.getItem(equipment.getItem(3), slot.getStorageIndex());
-            case BACKPACK_STORAGE -> ItemInventory.getItem(equipment.getItem(1), slot.getStorageIndex());
+        return switch (slot.type()) {
+            case EQUIPMENT, CLOTHS -> equipment.getItem(slot.index());
+            case HOTBAR -> player.getInventory().items.get(slot.vanillaIndex());
+            case JACKET_STORAGE -> ItemInventory.getItem(equipment.getItem(5), slot.storageIndex());
+            case PANTS_STORAGE -> ItemInventory.getItem(equipment.getItem(6), slot.storageIndex());
+            case VEST_STORAGE -> ItemInventory.getItem(equipment.getItem(2), slot.storageIndex());
+            case BELT_STORAGE -> ItemInventory.getItem(equipment.getItem(3), slot.storageIndex());
+            case BACKPACK_STORAGE -> ItemInventory.getItem(equipment.getItem(1), slot.storageIndex());
         };
     }
 
     private static void setStack(InventorySlot slot, EquipmentInventory equipment, Player player, ItemStack stack) {
         ItemStack safe = stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
 
-        switch (slot.getType()) {
-            case EQUIPMENT, CLOTHS -> equipment.setItem(slot.getIndex(), safe);
-            case HOTBAR -> player.getInventory().items.set(slot.getVanillaIndex(), safe);
-            case JACKET_STORAGE -> ItemInventory.setItem(equipment.getItem(5), slot.getStorageIndex(), safe);
-            case PANTS_STORAGE -> ItemInventory.setItem(equipment.getItem(6), slot.getStorageIndex(), safe);
-            case VEST_STORAGE -> ItemInventory.setItem(equipment.getItem(2), slot.getStorageIndex(), safe);
-            case BELT_STORAGE -> ItemInventory.setItem(equipment.getItem(3), slot.getStorageIndex(), safe);
-            case BACKPACK_STORAGE -> ItemInventory.setItem(equipment.getItem(1), slot.getStorageIndex(), safe);
+        switch (slot.type()) {
+            case EQUIPMENT, CLOTHS -> equipment.setItem(slot.index(), safe);
+            case HOTBAR -> player.getInventory().items.set(slot.vanillaIndex(), safe);
+            case JACKET_STORAGE -> ItemInventory.setItem(equipment.getItem(5), slot.storageIndex(), safe);
+            case PANTS_STORAGE -> ItemInventory.setItem(equipment.getItem(6), slot.storageIndex(), safe);
+            case VEST_STORAGE -> ItemInventory.setItem(equipment.getItem(2), slot.storageIndex(), safe);
+            case BELT_STORAGE -> ItemInventory.setItem(equipment.getItem(3), slot.storageIndex(), safe);
+            case BACKPACK_STORAGE -> ItemInventory.setItem(equipment.getItem(1), slot.storageIndex(), safe);
         }
     }
 
     private static ItemStack getContainerStack(InventorySlot slot, EquipmentInventory equipment) {
-        return switch (slot.getType()) {
+        return switch (slot.type()) {
             case JACKET_STORAGE -> equipment.getItem(5);
             case PANTS_STORAGE -> equipment.getItem(6);
             case VEST_STORAGE -> equipment.getItem(2);
@@ -268,9 +268,9 @@ public final class InventoryQuickMove {
     }
 
     private static int getValidationIndex(InventorySlot slot) {
-        return switch (slot.getType()) {
-            case JACKET_STORAGE, PANTS_STORAGE, VEST_STORAGE, BELT_STORAGE, BACKPACK_STORAGE -> slot.getStorageIndex();
-            default -> slot.getIndex();
+        return switch (slot.type()) {
+            case JACKET_STORAGE, PANTS_STORAGE, VEST_STORAGE, BELT_STORAGE, BACKPACK_STORAGE -> slot.storageIndex();
+            default -> slot.index();
         };
     }
 }

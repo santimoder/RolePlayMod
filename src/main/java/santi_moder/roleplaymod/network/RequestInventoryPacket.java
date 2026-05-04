@@ -10,7 +10,8 @@ import java.util.function.Supplier;
 
 public class RequestInventoryPacket {
 
-    public static void encode(RequestInventoryPacket pkt, FriendlyByteBuf buf) {}
+    public static void encode(RequestInventoryPacket pkt, FriendlyByteBuf buf) {
+    }
 
     public static RequestInventoryPacket decode(FriendlyByteBuf buf) {
         return new RequestInventoryPacket();

@@ -12,20 +12,14 @@ public final class WhatsappPresenceResolver {
     }
 
     public static boolean hasInternet(ServerPlayer player) {
-        if (player == null) {
-            return false;
-        }
+        return player != null;
 
         // TODO: conectar con tu sistema real de internet del mod.
-        return true;
     }
 
     public static boolean hasBattery(ServerPlayer player) {
-        if (player == null) {
-            return false;
-        }
+        return player != null;
 
         // TODO: conectar con tu sistema real de batería del teléfono/item.
-        return true;
     }
 }

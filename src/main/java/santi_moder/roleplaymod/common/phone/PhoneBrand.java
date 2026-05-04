@@ -13,15 +13,15 @@ public enum PhoneBrand {
         this.displayName = displayName;
     }
 
+    public static PhoneBrand getDefault() {
+        return APPLE;
+    }
+
     public String getDisplayName() {
         return displayName;
     }
 
     public boolean isAppleStyle() {
         return this == APPLE;
-    }
-
-    public static PhoneBrand getDefault() {
-        return APPLE;
     }
 }

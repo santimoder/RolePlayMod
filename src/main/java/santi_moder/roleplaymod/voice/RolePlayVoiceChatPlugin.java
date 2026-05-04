@@ -3,11 +3,7 @@ package santi_moder.roleplaymod.voice;
 import de.maxhenkel.voicechat.api.ForgeVoicechatPlugin;
 import de.maxhenkel.voicechat.api.VoicechatPlugin;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
-import de.maxhenkel.voicechat.api.events.EventRegistration;
-import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
-import de.maxhenkel.voicechat.api.events.PlayerDisconnectedEvent;
-import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
-import de.maxhenkel.voicechat.api.events.VoicechatServerStoppedEvent;
+import de.maxhenkel.voicechat.api.events.*;
 import santi_moder.roleplaymod.common.radio.voice.RadioTransmissionManager;
 
 @ForgeVoicechatPlugin

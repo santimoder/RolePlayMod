@@ -42,30 +42,22 @@ public class BodyStatusScreen extends Screen {
 
 
     private static final int DIAGNOSIS_TICKS_REQUIRED = 100;
+    private static final int TREATMENT_TICKS_REQUIRED = 60;
     private final boolean targetMode;
     private final java.util.UUID targetUuid;
     private final String targetName;
-
     private int panelX;
     private int panelY;
     private int bodyX;
     private int bodyY;
-
     private boolean diagnosing = false;
     private boolean diagnosed = false;
     private int diagnosisTicks = 0;
-
     private Button diagnoseButton;
-
     private int selectedBackpackSlot = -1;
     private BodyPart selectedBodyPart = null;
-
     private boolean treating = false;
     private int treatmentTicks = 0;
-
-
-    private static final int TREATMENT_TICKS_REQUIRED = 60;
-
     private Button treatButton;
 
     private BodyStatusScreen(boolean targetMode, java.util.UUID targetUuid, String targetName) {

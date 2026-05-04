@@ -37,6 +37,7 @@ public final class PhoneDataKeys {
     public static final String TAG_INSTALLED_APPS = "installed_apps";
 
     public static final String TAG_CARRIER = "carrier";
+
     private PhoneDataKeys() {
     }
 }

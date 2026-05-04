@@ -9,17 +9,7 @@ import santi_moder.roleplaymod.common.whatsapp.sync.WhatsappContactPayload;
 
 import java.util.function.Supplier;
 
-public final class WhatsappContactUpdatedS2CPacket {
-
-    private final WhatsappContactPayload payload;
-
-    public WhatsappContactUpdatedS2CPacket(WhatsappContactPayload payload) {
-        this.payload = payload;
-    }
-
-    public WhatsappContactPayload payload() {
-        return payload;
-    }
+public record WhatsappContactUpdatedS2CPacket(WhatsappContactPayload payload) {
 
     public static void encode(WhatsappContactUpdatedS2CPacket packet, FriendlyByteBuf buf) {
         WhatsappContactPayload.encode(buf, packet.payload);

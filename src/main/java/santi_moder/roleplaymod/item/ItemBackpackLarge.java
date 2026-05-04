@@ -1,7 +1,6 @@
 package santi_moder.roleplaymod.item;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import santi_moder.roleplaymod.common.inventory.item.StorageItem;

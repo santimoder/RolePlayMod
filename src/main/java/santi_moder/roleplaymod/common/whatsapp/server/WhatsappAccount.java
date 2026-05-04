@@ -35,6 +35,42 @@ public final class WhatsappAccount {
         this.lastKnownPlayerUuid = lastKnownPlayerUuid;
     }
 
+    public static WhatsappAccount load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        UUID accountId;
+
+        if (tag.hasUUID("accountId")) {
+            accountId = tag.getUUID("accountId");
+        } else if (tag.hasUUID("playerUuid")) {
+            // Compatibilidad con saves anteriores.
+            accountId = tag.getUUID("playerUuid");
+        } else {
+            accountId = UUID.randomUUID();
+        }
+
+        UUID lastKnownPlayerUuid = tag.hasUUID("lastKnownPlayerUuid")
+                ? tag.getUUID("lastKnownPlayerUuid")
+                : null;
+
+        return new WhatsappAccount(
+                accountId,
+                tag.getString("simId"),
+                tag.getString("phoneNumber"),
+                tag.getString("displayName"),
+                tag.getString("about"),
+                tag.getString("photoId"),
+                tag.getBoolean("registered"),
+                lastKnownPlayerUuid
+        );
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
+    }
+
     public UUID accountId() {
         return accountId;
     }
@@ -119,41 +155,5 @@ public final class WhatsappAccount {
         }
 
         return tag;
-    }
-
-    public static WhatsappAccount load(CompoundTag tag) {
-        if (tag == null) {
-            return null;
-        }
-
-        UUID accountId;
-
-        if (tag.hasUUID("accountId")) {
-            accountId = tag.getUUID("accountId");
-        } else if (tag.hasUUID("playerUuid")) {
-            // Compatibilidad con saves anteriores.
-            accountId = tag.getUUID("playerUuid");
-        } else {
-            accountId = UUID.randomUUID();
-        }
-
-        UUID lastKnownPlayerUuid = tag.hasUUID("lastKnownPlayerUuid")
-                ? tag.getUUID("lastKnownPlayerUuid")
-                : null;
-
-        return new WhatsappAccount(
-                accountId,
-                tag.getString("simId"),
-                tag.getString("phoneNumber"),
-                tag.getString("displayName"),
-                tag.getString("about"),
-                tag.getString("photoId"),
-                tag.getBoolean("registered"),
-                lastKnownPlayerUuid
-        );
-    }
-
-    private static String safe(String value) {
-        return value == null ? "" : value;
     }
 }

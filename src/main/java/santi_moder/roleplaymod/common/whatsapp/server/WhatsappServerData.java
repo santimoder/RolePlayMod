@@ -57,6 +57,10 @@ public final class WhatsappServerData extends SavedData {
         return data;
     }
 
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
     @Override
     public CompoundTag save(CompoundTag tag) {
         tag.put(TAG_ACCOUNTS, saveAccounts());
@@ -661,9 +665,5 @@ public final class WhatsappServerData extends SavedData {
         long seed = Math.abs(playerUuid.getLeastSignificantBits());
         String digits = String.format("%08d", seed % 100_000_000L);
         return "+598 " + digits;
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

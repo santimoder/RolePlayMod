@@ -14,7 +14,6 @@ import santi_moder.roleplaymod.common.inventory.EquipmentInventory;
 import santi_moder.roleplaymod.common.inventory.logic.GroundItemLogic;
 import santi_moder.roleplaymod.common.inventory.slots.InventorySlot;
 import santi_moder.roleplaymod.common.inventory.slots.RPInventorySlots;
-import santi_moder.roleplaymod.item.*;
 import santi_moder.roleplaymod.network.*;
 
 import java.util.ArrayList;
@@ -34,19 +33,16 @@ public class RPInventoryScreen extends Screen {
     private static final int SLOT_ADJUST_Y = -6;
 
     private static final int SLOT_SIZE = 18;
-
-    private int lastMouseX;
-    private int lastMouseY;
-
     private final List<ItemEntity> groundItems = new ArrayList<>();
     private final List<InventorySlot> slots = new ArrayList<>();
+    private int lastMouseX;
+    private int lastMouseY;
+    private EquipmentInventory lastEquipmentState;
+    private long lastGroundRefresh = 0L;
+
     public RPInventoryScreen() {
         super(Component.literal("RP Inventory"));
     }
-
-    private EquipmentInventory lastEquipmentState;
-
-    private long lastGroundRefresh = 0L;
 
     private EquipmentInventory getEquipment() {
         return santi_moder.roleplaymod.client.data.ClientInventoryData.getEquipment();
@@ -280,8 +276,8 @@ public class RPInventoryScreen extends Screen {
 
         for (InventorySlot slot : slots) {
 
-            int x = slot.getX() + SLOT_ADJUST_X;
-            int y = slot.getY() + SLOT_ADJUST_Y;
+            int x = slot.x() + SLOT_ADJUST_X;
+            int y = slot.y() + SLOT_ADJUST_Y;
 
             boolean hovered =
                     mouseX >= x &&
@@ -302,16 +298,16 @@ public class RPInventoryScreen extends Screen {
 
             ItemStack stack = ItemStack.EMPTY;
 
-            switch (slot.getType()) {
+            switch (slot.type()) {
 
                 case EQUIPMENT, CLOTHS -> {
 
-                    stack = equipment.getItem(slot.getIndex());
+                    stack = equipment.getItem(slot.index());
                 }
 
                 case HOTBAR -> {
 
-                    int vanilla = slot.getVanillaIndex();
+                    int vanilla = slot.vanillaIndex();
 
                     if (vanilla >= 0 && vanilla < mc.player.getInventory().items.size()) {
 
@@ -322,31 +318,31 @@ public class RPInventoryScreen extends Screen {
                 case JACKET_STORAGE -> {
 
                     stack = santi_moder.roleplaymod.common.inventory.item.ItemInventory
-                            .getItem(equipment.getItem(5), slot.getStorageIndex());
+                            .getItem(equipment.getItem(5), slot.storageIndex());
                 }
 
                 case PANTS_STORAGE -> {
 
                     stack = santi_moder.roleplaymod.common.inventory.item.ItemInventory
-                            .getItem(equipment.getItem(6), slot.getStorageIndex());
+                            .getItem(equipment.getItem(6), slot.storageIndex());
                 }
 
                 case VEST_STORAGE -> {
 
                     stack = santi_moder.roleplaymod.common.inventory.item.ItemInventory
-                            .getItem(equipment.getItem(2), slot.getStorageIndex());
+                            .getItem(equipment.getItem(2), slot.storageIndex());
                 }
 
                 case BELT_STORAGE -> {
 
                     stack = santi_moder.roleplaymod.common.inventory.item.ItemInventory
-                            .getItem(equipment.getItem(3), slot.getStorageIndex());
+                            .getItem(equipment.getItem(3), slot.storageIndex());
                 }
 
                 case BACKPACK_STORAGE -> {
 
                     stack = santi_moder.roleplaymod.common.inventory.item.ItemInventory
-                            .getItem(equipment.getItem(1), slot.getStorageIndex());
+                            .getItem(equipment.getItem(1), slot.storageIndex());
                 }
             }
 
@@ -393,8 +389,8 @@ public class RPInventoryScreen extends Screen {
 
     private InventorySlot getHoveredSlot(double mouseX, double mouseY) {
         for (InventorySlot slot : slots) {
-            int x = slot.getX() + SLOT_ADJUST_X;
-            int y = slot.getY() + SLOT_ADJUST_Y;
+            int x = slot.x() + SLOT_ADJUST_X;
+            int y = slot.y() + SLOT_ADJUST_Y;
 
             if (mouseX >= x && mouseX <= x + SLOT_SIZE
                     && mouseY >= y && mouseY <= y + SLOT_SIZE) {
@@ -418,13 +414,13 @@ public class RPInventoryScreen extends Screen {
 
             InventorySlot hovered = getHoveredSlot(lastMouseX, lastMouseY);
 
-            if (hovered != null && hovered.getType() != null) {
+            if (hovered != null && hovered.type() != null) {
                 ModNetwork.INVENTORY_CHANNEL.sendToServer(
                         new DropInventorySlotPacket(
-                                hovered.getIndex(),
-                                hovered.getType().ordinal(),
-                                hovered.getStorageIndex(),
-                                hovered.getVanillaIndex(),
+                                hovered.index(),
+                                hovered.type().ordinal(),
+                                hovered.storageIndex(),
+                                hovered.vanillaIndex(),
                                 fullStack
                         )
                 );
@@ -445,21 +441,21 @@ public class RPInventoryScreen extends Screen {
         // ---- CLICK EN INVENTARIO ----
         for (InventorySlot slot : slots) {
 
-            int x = slot.getX() + SLOT_ADJUST_X;
-            int y = slot.getY() + SLOT_ADJUST_Y;
+            int x = slot.x() + SLOT_ADJUST_X;
+            int y = slot.y() + SLOT_ADJUST_Y;
 
             if (mouseX >= x && mouseX <= x + SLOT_SIZE &&
                     mouseY >= y && mouseY <= y + SLOT_SIZE) {
 
-                if (slot.getType() != null) {
+                if (slot.type() != null) {
 
                     if (Screen.hasShiftDown()) {
                         ModNetwork.INVENTORY_CHANNEL.sendToServer(
                                 new QuickMoveInventorySlotPacket(
-                                        slot.getIndex(),
-                                        slot.getType().ordinal(),
-                                        slot.getStorageIndex(),
-                                        slot.getVanillaIndex()
+                                        slot.index(),
+                                        slot.type().ordinal(),
+                                        slot.storageIndex(),
+                                        slot.vanillaIndex()
                                 )
                         );
                         return true;
@@ -467,10 +463,10 @@ public class RPInventoryScreen extends Screen {
 
                     ModNetwork.INVENTORY_CHANNEL.sendToServer(
                             new InventoryClickPacket(
-                                    slot.getIndex(),
-                                    slot.getType().ordinal(),
-                                    slot.getStorageIndex(),
-                                    slot.getVanillaIndex(),
+                                    slot.index(),
+                                    slot.type().ordinal(),
+                                    slot.storageIndex(),
+                                    slot.vanillaIndex(),
                                     button
                             )
                     );

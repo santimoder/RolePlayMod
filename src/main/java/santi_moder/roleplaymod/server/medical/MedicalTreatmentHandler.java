@@ -20,11 +20,7 @@ import santi_moder.roleplaymod.network.SyncPatientMedicalDataS2CPacket;
 import santi_moder.roleplaymod.network.SyncPlayerDataPacket;
 import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID)
 public final class MedicalTreatmentHandler {

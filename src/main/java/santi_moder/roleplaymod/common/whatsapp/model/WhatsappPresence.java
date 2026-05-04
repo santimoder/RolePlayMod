@@ -24,6 +24,20 @@ public final class WhatsappPresence {
         this.lastSeenTimestamp = lastSeenTimestamp;
     }
 
+    public static WhatsappPresence load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        return new WhatsappPresence(
+                tag.getString("contactId"),
+                tag.getBoolean("onlineInServer"),
+                tag.getBoolean("hasInternet"),
+                tag.getBoolean("hasBattery"),
+                tag.getLong("lastSeenTimestamp")
+        );
+    }
+
     public String contactId() {
         return contactId;
     }
@@ -74,19 +88,5 @@ public final class WhatsappPresence {
         tag.putLong("lastSeenTimestamp", lastSeenTimestamp);
 
         return tag;
-    }
-
-    public static WhatsappPresence load(CompoundTag tag) {
-        if (tag == null) {
-            return null;
-        }
-
-        return new WhatsappPresence(
-                tag.getString("contactId"),
-                tag.getBoolean("onlineInServer"),
-                tag.getBoolean("hasInternet"),
-                tag.getBoolean("hasBattery"),
-                tag.getLong("lastSeenTimestamp")
-        );
     }
 }

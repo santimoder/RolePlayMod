@@ -4,10 +4,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import santi_moder.roleplaymod.server.data.PlayerDataProvider;
+import net.minecraftforge.network.PacketDistributor;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.SyncPlayerDataPacket;
-import net.minecraftforge.network.PacketDistributor;
+import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 
 @Mod.EventBusSubscriber(modid = "roleplaymod")
 public class PlayerTickHandler {

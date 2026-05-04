@@ -7,22 +7,11 @@ import santi_moder.roleplaymod.common.whatsapp.server.WhatsappServerService;
 
 import java.util.function.Supplier;
 
-public final class WhatsappMarkChatUnreadC2SPacket {
-
-    private final String chatId;
-    private final boolean unread;
+public record WhatsappMarkChatUnreadC2SPacket(String chatId, boolean unread) {
 
     public WhatsappMarkChatUnreadC2SPacket(String chatId, boolean unread) {
         this.chatId = chatId == null ? "" : chatId;
         this.unread = unread;
-    }
-
-    public String chatId() {
-        return chatId;
-    }
-
-    public boolean unread() {
-        return unread;
     }
 
     public static void encode(WhatsappMarkChatUnreadC2SPacket packet, FriendlyByteBuf buf) {

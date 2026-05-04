@@ -6,7 +6,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.network.NetworkEvent;
 import santi_moder.roleplaymod.client.data.ClientPlayerData;
 import santi_moder.roleplaymod.common.player.IPlayerData;
-import santi_moder.roleplaymod.common.player.PlayerData;
 import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 
 import java.util.function.Supplier;

@@ -11,16 +11,10 @@ import santi_moder.roleplaymod.RolePlayMod;
 import santi_moder.roleplaymod.client.input.ModKeyBindings;
 import santi_moder.roleplaymod.client.phone.ClientPhoneOpener;
 import santi_moder.roleplaymod.client.radio.voice.RadioVoiceChatPttState;
-import santi_moder.roleplaymod.client.radio.voice.SimpleVoiceChatPttBridge;
-import santi_moder.roleplaymod.client.screen.BodyStatusScreen;
 import santi_moder.roleplaymod.client.screen.RPInventoryScreen;
 import santi_moder.roleplaymod.item.PhoneItem;
 import santi_moder.roleplaymod.network.*;
-import santi_moder.roleplaymod.network.radio.StartRadioTransmissionPacket;
-import santi_moder.roleplaymod.network.radio.StopRadioTransmissionPacket;
-import santi_moder.roleplaymod.network.radio.ToggleRadioPacket;
-import santi_moder.roleplaymod.network.radio.IncreaseRadioFrequencyPacket;
-import santi_moder.roleplaymod.network.radio.DecreaseRadioFrequencyPacket;
+import santi_moder.roleplaymod.network.radio.*;
 
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID, value = Dist.CLIENT)
 public class ClientKeyHandler {
@@ -49,7 +43,8 @@ public class ClientKeyHandler {
             radioPttDown = false;
 
             RadioVoiceChatPttState.setRadioPttDown(false);
-            ModNetwork.sendInventoryToServer(new StopRadioTransmissionPacket());        }
+            ModNetwork.sendInventoryToServer(new StopRadioTransmissionPacket());
+        }
 
         // ================= RADIO CONTROLES =================
         if (mc.screen == null) {

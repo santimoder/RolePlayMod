@@ -9,17 +9,7 @@ import santi_moder.roleplaymod.common.whatsapp.sync.WhatsappMessageStatusPayload
 
 import java.util.function.Supplier;
 
-public final class WhatsappMessageStatusUpdatedS2CPacket {
-
-    private final WhatsappMessageStatusPayload payload;
-
-    public WhatsappMessageStatusUpdatedS2CPacket(WhatsappMessageStatusPayload payload) {
-        this.payload = payload;
-    }
-
-    public WhatsappMessageStatusPayload payload() {
-        return payload;
-    }
+public record WhatsappMessageStatusUpdatedS2CPacket(WhatsappMessageStatusPayload payload) {
 
     public static void encode(WhatsappMessageStatusUpdatedS2CPacket packet, FriendlyByteBuf buf) {
         WhatsappMessageStatusPayload.encode(buf, packet.payload);

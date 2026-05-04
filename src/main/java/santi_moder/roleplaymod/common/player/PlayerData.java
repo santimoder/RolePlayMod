@@ -182,6 +182,11 @@ public class PlayerData implements IPlayerData {
     }
 
     @Override
+    public void setInconsciente(boolean value) {
+        inconsciente = value;
+    }
+
+    @Override
     public int getUnconsciousTicks() {
         return unconsciousTicks;
     }
@@ -199,13 +204,12 @@ public class PlayerData implements IPlayerData {
     }
 
     @Override
-    public void setInconsciente(boolean value) {
-        inconsciente = value;
-    }
-
-    @Override
     public int getContadorInconsciencias() {
         return contadorInconsciencias;
+    }
+
+    public void setContadorInconsciencias(int value) {
+        contadorInconsciencias = Math.max(0, value);
     }
 
     @Override
@@ -216,10 +220,6 @@ public class PlayerData implements IPlayerData {
     @Override
     public void resetInconsciencias() {
         contadorInconsciencias = 0;
-    }
-
-    public void setContadorInconsciencias(int value) {
-        contadorInconsciencias = Math.max(0, value);
     }
 
     @Override

@@ -342,23 +342,6 @@ public final class WhatsappContactInfoView {
         TOGGLE_BLOCK
     }
 
-    private static final class RowAction {
-        private final int x;
-        private final int y;
-        private final int w;
-        private final String title;
-        private final String subtitle;
-        private final int color;
-        private final Action action;
-
-        private RowAction(int x, int y, int w, String title, String subtitle, int color, Action action) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.title = title;
-            this.subtitle = subtitle;
-            this.color = color;
-            this.action = action;
-        }
+    private record RowAction(int x, int y, int w, String title, String subtitle, int color, Action action) {
     }
 }

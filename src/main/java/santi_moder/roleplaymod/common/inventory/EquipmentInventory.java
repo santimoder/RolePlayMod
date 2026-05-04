@@ -79,29 +79,55 @@ public class EquipmentInventory {
     public int getContainerSize() {
         return slots.length;
     }
+
     public ItemStack[] getSlots() {
         return slots;
     }
+
     public ItemStack getItem(int slot) {
         if (slot < 0 || slot >= slots.length) return ItemStack.EMPTY;
         return slots[slot] == null ? ItemStack.EMPTY : slots[slot];
     }
+
     public void setItem(int slot, ItemStack stack) {
         if (slot < 0 || slot >= slots.length) return;
         slots[slot] = (stack == null || stack.isEmpty()) ? ItemStack.EMPTY : stack.copy();
     }
 
 
-
     public boolean hasItem(int slot) {
         return slot >= 0 && slot < slots.length && !slots[slot].isEmpty();
     }
-    public boolean hasMask() { return hasItem(0); }
-    public boolean hasBackpack() { return hasItem(1); }
-    public boolean hasVest() { return hasItem(2); }
-    public boolean hasBelt() { return hasItem(3); }
-    public boolean hasHat() { return hasItem(4); }
-    public boolean hasJacket() { return hasItem(5); }
-    public boolean hasPants() { return hasItem(6); }
-    public boolean hasShoes() { return hasItem(7); }
+
+    public boolean hasMask() {
+        return hasItem(0);
+    }
+
+    public boolean hasBackpack() {
+        return hasItem(1);
+    }
+
+    public boolean hasVest() {
+        return hasItem(2);
+    }
+
+    public boolean hasBelt() {
+        return hasItem(3);
+    }
+
+    public boolean hasHat() {
+        return hasItem(4);
+    }
+
+    public boolean hasJacket() {
+        return hasItem(5);
+    }
+
+    public boolean hasPants() {
+        return hasItem(6);
+    }
+
+    public boolean hasShoes() {
+        return hasItem(7);
+    }
 }

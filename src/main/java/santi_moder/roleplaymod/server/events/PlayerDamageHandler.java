@@ -6,8 +6,8 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingKnockBackEvent;
@@ -22,7 +22,6 @@ import santi_moder.roleplaymod.server.combat.DamageProcessor;
 import santi_moder.roleplaymod.server.combat.ProjectileMovementTrace;
 import santi_moder.roleplaymod.server.combat.ProjectilePositionTracker;
 import santi_moder.roleplaymod.server.combat.weapon.TaCZWeaponResolver;
-import santi_moder.roleplaymod.server.combat.weapon.WeaponCategory;
 import santi_moder.roleplaymod.server.combat.weapon.WeaponDamageProfile;
 
 import java.util.Optional;

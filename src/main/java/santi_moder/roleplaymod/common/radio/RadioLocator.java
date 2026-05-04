@@ -23,9 +23,7 @@ public class RadioLocator {
         if (belt != null) return belt;
 
         LocatedRadio vest = findInVestSlot0(player);
-        if (vest != null) return vest;
-
-        return null;
+        return vest;
     }
 
     public static LocatedRadio findInMainHand(Player player) {

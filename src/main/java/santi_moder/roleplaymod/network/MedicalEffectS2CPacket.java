@@ -10,14 +10,8 @@ import java.util.function.Supplier;
 
 public class MedicalEffectS2CPacket {
 
-    public enum Type {
-        DAMAGE_HIT,
-        BLEED_PULSE
-    }
-
     private final Type type;
     private final float intensity;
-
     public MedicalEffectS2CPacket(Type type) {
         this(type, 1.0F);
     }
@@ -53,5 +47,10 @@ public class MedicalEffectS2CPacket {
         });
 
         ctx.setPacketHandled(true);
+    }
+
+    public enum Type {
+        DAMAGE_HIT,
+        BLEED_PULSE
     }
 }

@@ -9,7 +9,6 @@ import santi_moder.roleplaymod.common.inventory.rules.ContainerRules;
 import santi_moder.roleplaymod.common.inventory.rules.ContainerType;
 import santi_moder.roleplaymod.common.inventory.security.InventorySlotSecurity;
 import santi_moder.roleplaymod.common.inventory.slots.InventorySlot;
-import santi_moder.roleplaymod.common.inventory.slots.SlotType;
 import santi_moder.roleplaymod.common.inventory.validation.SlotValidator;
 import santi_moder.roleplaymod.item.ItemBackpackHuge;
 import santi_moder.roleplaymod.item.ItemBackpackLarge;
@@ -47,7 +46,7 @@ public final class InventoryInteraction {
             ItemStack containerStack = getContainerStack(slot, equipment);
             int validationIndex = getValidationIndex(slot);
 
-            if (!SlotValidator.isValid(carried, slot.getType(), validationIndex, containerStack)) {
+            if (!SlotValidator.isValid(carried, slot.type(), validationIndex, containerStack)) {
                 return carried;
             }
         }
@@ -178,27 +177,20 @@ public final class InventoryInteraction {
             return ItemStack.EMPTY;
         }
 
-        return switch (slot.getType()) {
-            case EQUIPMENT, CLOTHS ->
-                    equipment.getItem(slot.getIndex());
+        return switch (slot.type()) {
+            case EQUIPMENT, CLOTHS -> equipment.getItem(slot.index());
 
-            case HOTBAR ->
-                    player.getInventory().items.get(slot.getVanillaIndex());
+            case HOTBAR -> player.getInventory().items.get(slot.vanillaIndex());
 
-            case JACKET_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(5), slot.getStorageIndex());
+            case JACKET_STORAGE -> ItemInventory.getItem(equipment.getItem(5), slot.storageIndex());
 
-            case PANTS_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(6), slot.getStorageIndex());
+            case PANTS_STORAGE -> ItemInventory.getItem(equipment.getItem(6), slot.storageIndex());
 
-            case VEST_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(2), slot.getStorageIndex());
+            case VEST_STORAGE -> ItemInventory.getItem(equipment.getItem(2), slot.storageIndex());
 
-            case BELT_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(3), slot.getStorageIndex());
+            case BELT_STORAGE -> ItemInventory.getItem(equipment.getItem(3), slot.storageIndex());
 
-            case BACKPACK_STORAGE ->
-                    ItemInventory.getItem(equipment.getItem(1), slot.getStorageIndex());
+            case BACKPACK_STORAGE -> ItemInventory.getItem(equipment.getItem(1), slot.storageIndex());
         };
     }
 
@@ -214,27 +206,20 @@ public final class InventoryInteraction {
 
         ItemStack safeStack = stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
 
-        switch (slot.getType()) {
-            case EQUIPMENT, CLOTHS ->
-                    equipment.setItem(slot.getIndex(), safeStack);
+        switch (slot.type()) {
+            case EQUIPMENT, CLOTHS -> equipment.setItem(slot.index(), safeStack);
 
-            case HOTBAR ->
-                    player.getInventory().items.set(slot.getVanillaIndex(), safeStack);
+            case HOTBAR -> player.getInventory().items.set(slot.vanillaIndex(), safeStack);
 
-            case JACKET_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(5), slot.getStorageIndex(), safeStack);
+            case JACKET_STORAGE -> ItemInventory.setItem(equipment.getItem(5), slot.storageIndex(), safeStack);
 
-            case PANTS_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(6), slot.getStorageIndex(), safeStack);
+            case PANTS_STORAGE -> ItemInventory.setItem(equipment.getItem(6), slot.storageIndex(), safeStack);
 
-            case VEST_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(2), slot.getStorageIndex(), safeStack);
+            case VEST_STORAGE -> ItemInventory.setItem(equipment.getItem(2), slot.storageIndex(), safeStack);
 
-            case BELT_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(3), slot.getStorageIndex(), safeStack);
+            case BELT_STORAGE -> ItemInventory.setItem(equipment.getItem(3), slot.storageIndex(), safeStack);
 
-            case BACKPACK_STORAGE ->
-                    ItemInventory.setItem(equipment.getItem(1), slot.getStorageIndex(), safeStack);
+            case BACKPACK_STORAGE -> ItemInventory.setItem(equipment.getItem(1), slot.storageIndex(), safeStack);
         }
 
         if (player instanceof ServerPlayer serverPlayer) {
@@ -278,7 +263,7 @@ public final class InventoryInteraction {
             return null;
         }
 
-        return switch (slot.getType()) {
+        return switch (slot.type()) {
             case BELT_STORAGE -> ContainerType.BELT;
             case VEST_STORAGE -> ContainerType.VEST;
             case PANTS_STORAGE -> ContainerType.PANTS;
@@ -306,11 +291,11 @@ public final class InventoryInteraction {
     }
 
     private static ItemStack getContainerStack(InventorySlot slot, EquipmentInventory equipment) {
-        if (slot == null || equipment == null || slot.getType() == null) {
+        if (slot == null || equipment == null || slot.type() == null) {
             return ItemStack.EMPTY;
         }
 
-        return switch (slot.getType()) {
+        return switch (slot.type()) {
             case JACKET_STORAGE -> equipment.getItem(5);
             case PANTS_STORAGE -> equipment.getItem(6);
             case VEST_STORAGE -> equipment.getItem(2);
@@ -321,12 +306,10 @@ public final class InventoryInteraction {
     }
 
     private static int getValidationIndex(InventorySlot slot) {
-        return switch (slot.getType()) {
-            case JACKET_STORAGE, PANTS_STORAGE, VEST_STORAGE, BELT_STORAGE, BACKPACK_STORAGE ->
-                    slot.getStorageIndex();
+        return switch (slot.type()) {
+            case JACKET_STORAGE, PANTS_STORAGE, VEST_STORAGE, BELT_STORAGE, BACKPACK_STORAGE -> slot.storageIndex();
 
-            default ->
-                    slot.getIndex();
+            default -> slot.index();
         };
     }
 

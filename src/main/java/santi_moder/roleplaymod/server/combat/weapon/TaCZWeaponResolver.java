@@ -5,11 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class TaCZWeaponResolver {
 
@@ -94,9 +90,8 @@ public final class TaCZWeaponResolver {
     }
 
 
-
-
-    private TaCZWeaponResolver() {}
+    private TaCZWeaponResolver() {
+    }
 
     // ==========================
     // ENTRY POINT PRINCIPAL

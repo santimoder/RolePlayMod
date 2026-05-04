@@ -27,6 +27,27 @@ public final class WhatsappProfile {
         );
     }
 
+    public static WhatsappProfile load(CompoundTag tag) {
+        if (tag == null) {
+            return createDefault("", "");
+        }
+
+        return new WhatsappProfile(
+                tag.getString("photoId"),
+                tag.getString("about"),
+                tag.getString("displayName"),
+                tag.getString("phoneNumber")
+        );
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
     public String photoId() {
         return photoId;
     }
@@ -68,26 +89,5 @@ public final class WhatsappProfile {
         tag.putString("phoneNumber", phoneNumber);
 
         return tag;
-    }
-
-    public static WhatsappProfile load(CompoundTag tag) {
-        if (tag == null) {
-            return createDefault("", "");
-        }
-
-        return new WhatsappProfile(
-                tag.getString("photoId"),
-                tag.getString("about"),
-                tag.getString("displayName"),
-                tag.getString("phoneNumber")
-        );
-    }
-
-    private static String safe(String value) {
-        return value == null ? "" : value;
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

@@ -19,11 +19,11 @@ import santi_moder.roleplaymod.server.data.PlayerDataProvider;
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID, value = Dist.CLIENT)
 public final class MedicalVisualOverlayHandler {
 
-    private MedicalVisualOverlayHandler() {
-    }
-
     private static final ResourceLocation BLOOD_VIGNETTE =
             new ResourceLocation(RolePlayMod.MOD_ID, "textures/gui/blood_vignette.png");
+
+    private MedicalVisualOverlayHandler() {
+    }
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {

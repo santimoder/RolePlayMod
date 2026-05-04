@@ -7,16 +7,10 @@ import santi_moder.roleplaymod.common.whatsapp.server.WhatsappServerService;
 
 import java.util.function.Supplier;
 
-public final class WhatsappClearChatC2SPacket {
-
-    private final String chatId;
+public record WhatsappClearChatC2SPacket(String chatId) {
 
     public WhatsappClearChatC2SPacket(String chatId) {
         this.chatId = chatId == null ? "" : chatId;
-    }
-
-    public String chatId() {
-        return chatId;
     }
 
     public static void encode(WhatsappClearChatC2SPacket packet, FriendlyByteBuf buf) {

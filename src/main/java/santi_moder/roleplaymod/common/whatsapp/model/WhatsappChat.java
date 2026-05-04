@@ -4,20 +4,16 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public final class WhatsappChat {
 
     private final String id;
+    private final List<WhatsappMessage> messages = new ArrayList<>();
     private String contactId;
     private boolean pinned;
     private boolean archived;
     private int unreadCount;
-    private final List<WhatsappMessage> messages = new ArrayList<>();
 
     public WhatsappChat(
             String id,
@@ -47,6 +43,40 @@ public final class WhatsappChat {
             List<WhatsappMessage> initialMessages
     ) {
         return new WhatsappChat(UUID.randomUUID().toString(), contactId, pinned, archived, unreadCount, initialMessages);
+    }
+
+    public static WhatsappChat load(CompoundTag tag) {
+        if (tag == null) {
+            return null;
+        }
+
+        String id = tag.getString("id");
+        String contactId = tag.getString("contactId");
+        boolean pinned = tag.getBoolean("pinned");
+        boolean archived = tag.getBoolean("archived");
+        int unreadCount = tag.getInt("unreadCount");
+
+        List<WhatsappMessage> messages = new ArrayList<>();
+
+        if (tag.contains("messages", Tag.TAG_LIST)) {
+            ListTag messagesTag = tag.getList("messages", Tag.TAG_COMPOUND);
+
+            for (int i = 0; i < messagesTag.size(); i++) {
+                WhatsappMessage message = WhatsappMessage.load(messagesTag.getCompound(i));
+                if (message != null) {
+                    messages.add(message);
+                }
+            }
+        }
+
+        return new WhatsappChat(
+                id,
+                contactId,
+                pinned,
+                archived,
+                unreadCount,
+                messages
+        );
     }
 
     public String id() {
@@ -164,40 +194,6 @@ public final class WhatsappChat {
 
         tag.put("messages", messagesTag);
         return tag;
-    }
-
-    public static WhatsappChat load(CompoundTag tag) {
-        if (tag == null) {
-            return null;
-        }
-
-        String id = tag.getString("id");
-        String contactId = tag.getString("contactId");
-        boolean pinned = tag.getBoolean("pinned");
-        boolean archived = tag.getBoolean("archived");
-        int unreadCount = tag.getInt("unreadCount");
-
-        List<WhatsappMessage> messages = new ArrayList<>();
-
-        if (tag.contains("messages", Tag.TAG_LIST)) {
-            ListTag messagesTag = tag.getList("messages", Tag.TAG_COMPOUND);
-
-            for (int i = 0; i < messagesTag.size(); i++) {
-                WhatsappMessage message = WhatsappMessage.load(messagesTag.getCompound(i));
-                if (message != null) {
-                    messages.add(message);
-                }
-            }
-        }
-
-        return new WhatsappChat(
-                id,
-                contactId,
-                pinned,
-                archived,
-                unreadCount,
-                messages
-        );
     }
 
     @Override

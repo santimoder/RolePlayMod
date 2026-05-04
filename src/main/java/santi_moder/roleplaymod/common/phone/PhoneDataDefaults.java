@@ -1,6 +1,7 @@
 package santi_moder.roleplaymod.common.phone;
 
 import net.minecraft.nbt.CompoundTag;
+
 import java.util.UUID;
 
 public final class PhoneDataDefaults {

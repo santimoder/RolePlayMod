@@ -106,27 +106,12 @@ public final class PhoneIconGrid {
         return null;
     }
 
-    public static class IconEntry {
-        private final PhoneAppId appId;
-        private final String label;
-
-        public IconEntry(PhoneAppId appId, String label) {
-            this.appId = appId;
-            this.label = label;
-        }
-
-        public PhoneAppId appId() {
-            return appId;
-        }
-
-        public String label() {
-            return label;
-        }
+    public record IconEntry(PhoneAppId appId, String label) {
 
         public ResourceLocation icon() {
-            return appId.getIcon();
+                return appId.getIcon();
+            }
         }
-    }
 
     public record ClickedIcon(PhoneAppId appId, String label, int x, int y, int width, int height) {
     }

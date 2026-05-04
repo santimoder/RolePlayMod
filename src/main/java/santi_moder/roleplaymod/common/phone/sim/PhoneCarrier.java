@@ -17,18 +17,6 @@ public enum PhoneCarrier {
         this.prefixes = prefixes;
     }
 
-    public String displayName() {
-        return displayName;
-    }
-
-    public List<String> prefixes() {
-        return prefixes;
-    }
-
-    public String randomPrefix(Random random) {
-        return prefixes.get(random.nextInt(prefixes.size()));
-    }
-
     public static PhoneCarrier fromName(String value) {
         if (value == null || value.isBlank()) {
             return ANTEL;
@@ -42,5 +30,17 @@ public enum PhoneCarrier {
             case "claro" -> CLARO;
             default -> ANTEL;
         };
+    }
+
+    public String displayName() {
+        return displayName;
+    }
+
+    public List<String> prefixes() {
+        return prefixes;
+    }
+
+    public String randomPrefix(Random random) {
+        return prefixes.get(random.nextInt(prefixes.size()));
     }
 }

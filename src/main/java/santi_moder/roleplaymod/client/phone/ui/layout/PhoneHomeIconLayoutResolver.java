@@ -1,7 +1,7 @@
 package santi_moder.roleplaymod.client.phone.ui.layout;
 
-import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.client.phone.animation.PhoneTransitionContext;
+import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.phone.PhoneAppId;
 import santi_moder.roleplaymod.common.phone.PhoneData;
 
