@@ -247,16 +247,22 @@ public final class PlayerDamageHandler {
     }
 
     private static Vec3 resolveSourcePosition(LivingHurtEvent event, ServerPlayer player) {
-        Vec3 sourcePosition = event.getSource().getSourcePosition();
+        Entity attacker = event.getSource().getEntity();
 
-        if (sourcePosition != null) return sourcePosition;
-
-        if (event.getSource().getDirectEntity() != null) {
-            return event.getSource().getDirectEntity().position();
+        if (attacker != null) {
+            return attacker.position();
         }
 
-        if (event.getSource().getEntity() != null) {
-            return event.getSource().getEntity().position();
+        Entity direct = event.getSource().getDirectEntity();
+
+        if (direct != null) {
+            return direct.position();
+        }
+
+        Vec3 sourcePosition = event.getSource().getSourcePosition();
+
+        if (sourcePosition != null) {
+            return sourcePosition;
         }
 
         return player.position();

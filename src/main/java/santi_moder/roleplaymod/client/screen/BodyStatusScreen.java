@@ -177,7 +177,6 @@ public class BodyStatusScreen extends Screen {
     }
 
     private void updateTreatButton() {
-
         if (diagnoseButton != null && diagnosed) {
             diagnoseButton.visible = false;
             diagnoseButton.active = false;
@@ -185,11 +184,16 @@ public class BodyStatusScreen extends Screen {
 
         if (treatButton == null) return;
 
+        boolean validBackpackSlot = selectedBackpackSlot >= 0
+                && selectedBackpackSlot < ClientMedicalBackpackData.size();
+
+        boolean validBodyPart = selectedBodyPart != null
+                && getBleeding(selectedBodyPart) != BleedingType.NONE;
+
         boolean canTreat = diagnosed
                 && !treating
-                && selectedBackpackSlot >= 0
-                && selectedBodyPart != null
-                && getBleeding(selectedBodyPart) != BleedingType.NONE;
+                && validBackpackSlot
+                && validBodyPart;
 
         treatButton.visible = diagnosed;
         treatButton.active = canTreat;
@@ -259,7 +263,12 @@ public class BodyStatusScreen extends Screen {
     private boolean handleBodyPartClick(double mouseX, double mouseY) {
         BodyPart part = getClickedBleedingMarker(mouseX, mouseY);
 
+        if (part == null) {
+            part = getClickedBodyPart(mouseX, mouseY);
+        }
+
         if (part == null) return false;
+        if (getBleeding(part) == BleedingType.NONE) return false;
 
         selectedBodyPart = part;
         return true;

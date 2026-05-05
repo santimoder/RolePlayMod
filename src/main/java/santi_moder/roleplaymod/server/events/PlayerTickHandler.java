@@ -45,16 +45,11 @@ public class PlayerTickHandler {
                     if (player.tickCount % 10 == 0) {
                         int before = data.getStamina();
                         data.setStamina(Math.max(0, data.getStamina() - 1));
-                        System.out.println("[SERVER][STAMINA] " + player.getName().getString()
-                                + " sprinting=true before=" + before
-                                + " after=" + data.getStamina());
                     }
 
                     data.setStaminaRegenCooldown(STAMINA_REGEN_DELAY);
                 } else {
                     player.setSprinting(false);
-                    System.out.println("[SERVER][STAMINA] " + player.getName().getString()
-                            + " sprint cancelado");
                 }
             }
 
@@ -67,11 +62,25 @@ public class PlayerTickHandler {
                 data.setStaminaExhausted(false);
             }
 
+            int slownessAmplifier = -1;
+
             if (data.isStaminaExhausted()) {
+                slownessAmplifier = Math.max(slownessAmplifier, 2);
+            }
+
+            if (data.getStaminaMultiplier() <= 0.40F) {
+                slownessAmplifier = Math.max(slownessAmplifier, 3);
+            } else if (data.getStaminaMultiplier() <= 0.60F) {
+                slownessAmplifier = Math.max(slownessAmplifier, 2);
+            } else if (data.getStaminaMultiplier() <= 0.80F) {
+                slownessAmplifier = Math.max(slownessAmplifier, 1);
+            }
+
+            if (slownessAmplifier >= 0) {
                 player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                         net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN,
                         40,
-                        2,
+                        slownessAmplifier,
                         true,
                         false
                 ));

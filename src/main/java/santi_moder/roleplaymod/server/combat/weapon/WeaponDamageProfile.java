@@ -4,24 +4,48 @@ public record WeaponDamageProfile(
         String weaponId,
         String displayName,
         WeaponCategory category,
-        float baseDamage,
+        AmmoCaliber caliber,
+        float weaponDamageMultiplier,
         float bodyDamageMultiplier,
         float bloodLossMultiplier,
         float shockMultiplier,
-        boolean causesHeavyBleeding,
-        boolean isHighPenetration
+        float effectiveRange,
+        float maxRange,
+        boolean enabled
 ) {
-    public static WeaponDamageProfile generic() {
+    public static WeaponDamageProfile disabled(String weaponId) {
         return new WeaponDamageProfile(
-                "unknown",
-                "Unknown",
+                weaponId,
+                "Disabled",
                 WeaponCategory.GENERIC,
-                5.0F,
-                1.0F,
-                1.0F,
-                1.0F,
-                false,
+                AmmoCaliber.NINE_MM,
+                0.0F,
+                0.0F,
+                0.0F,
+                0.0F,
+                0.0F,
+                0.0F,
                 false
         );
+    }
+
+    public static WeaponDamageProfile generic() {
+        return disabled("unknown");
+    }
+
+    public AmmoCaliberProfile caliberProfile() {
+        return AmmoCaliberProfile.of(caliber);
+    }
+
+    public boolean causesHeavyBleeding() {
+        return caliberProfile().heavyBleedPotential();
+    }
+
+    public boolean isHighPenetration() {
+        return caliberProfile().highPenetration();
+    }
+
+    public float baseDamage() {
+        return caliberProfile().baseDamage() * weaponDamageMultiplier;
     }
 }

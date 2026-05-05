@@ -40,9 +40,11 @@ public final class MedicalUtils {
         player.die(source);
     }
 
-    public static int getUnconsciousDurationTicks(IPlayerData data, int recentBloodLoss) {
+    public static int getUnconsciousDurationTicks(IPlayerData data, int immediateBloodLoss) {
         if (data == null) return 0;
         if (isMedicallyDead(data)) return 0;
+
+        int accumulatedBloodLoss = data.getRecentBloodLoss();
 
         if (data.getBodyHp(BodyPart.HEAD) > 0 && data.getBodyHp(BodyPart.HEAD) <= 3) {
             return 90 * 20;
@@ -60,8 +62,16 @@ public final class MedicalUtils {
             return 50 * 20;
         }
 
-        if (recentBloodLoss >= 25) {
+        if (immediateBloodLoss >= 25) {
             return 45 * 20;
+        }
+
+        if (accumulatedBloodLoss >= 30) {
+            return 45 * 20;
+        }
+
+        if (accumulatedBloodLoss >= 20 && data.getSangre() <= 35) {
+            return 30 * 20;
         }
 
         return 0;

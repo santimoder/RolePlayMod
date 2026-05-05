@@ -48,10 +48,6 @@ public interface IPlayerData {
 
     int getContadorInconsciencias();
 
-    void incrementarInconsciencias();
-
-    void resetInconsciencias();
-
     void resetPhysicalStats();
 
     void resetAfterDeath();
@@ -85,6 +81,14 @@ public interface IPlayerData {
     BleedingType getBleeding(BodyPart part);
 
     void setBleeding(BodyPart part, BleedingType type);
+
+    int getRecentBloodLoss();
+
+    void addRecentBloodLoss(int amount);
+
+    void tickRecentBloodLossWindow();
+
+    void resetRecentBloodLoss();
 
     void damageBodyPart(BodyPart part, int amount);
 

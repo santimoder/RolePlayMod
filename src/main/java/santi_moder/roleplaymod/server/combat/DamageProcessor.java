@@ -10,6 +10,7 @@ import santi_moder.roleplaymod.common.util.MedicalUtils;
 import santi_moder.roleplaymod.network.MedicalEffectS2CPacket;
 import santi_moder.roleplaymod.network.ModNetwork;
 import santi_moder.roleplaymod.network.SyncPlayerDataPacket;
+import santi_moder.roleplaymod.server.combat.weapon.AmmoCaliberProfile;
 import santi_moder.roleplaymod.server.combat.weapon.WeaponCategory;
 import santi_moder.roleplaymod.server.combat.weapon.WeaponDamageProfile;
 import santi_moder.roleplaymod.server.data.PlayerDataProvider;
@@ -47,7 +48,19 @@ public final class DamageProcessor {
                 return;
             }
 
+            if (type == CustomDamageType.PROJECTILE) {
+                if (weaponProfile == null || !weaponProfile.enabled()) {
+                    sync(target, data);
+                    return;
+                }
+            }
+
             float effectiveDamage = getEffectiveRawDamage(type, rawDamage, weaponProfile);
+
+            if (type == CustomDamageType.PROJECTILE) {
+                effectiveDamage = applyDistanceFalloff(effectiveDamage, target, sourcePosition, weaponProfile);
+            }
+
             DamageSeverity severity = DamageSeverity.fromDamage(effectiveDamage);
 
             DamageResult result = switch (type) {
@@ -68,6 +81,11 @@ public final class DamageProcessor {
             if (unconsciousTicks > 0) {
                 data.setInconsciente(true);
                 data.setUnconsciousTicks(Math.max(data.getUnconsciousTicks(), unconsciousTicks));
+            }
+
+            if (type == CustomDamageType.FALL && effectiveDamage + 3 >= 17) {
+                data.setInconsciente(true);
+                data.setUnconsciousTicks(Math.max(data.getUnconsciousTicks(), 70 * 20));
             }
 
             finishDamage(target, data, result.effectIntensity());
@@ -106,11 +124,52 @@ public final class DamageProcessor {
             float rawDamage,
             WeaponDamageProfile profile
     ) {
-        if (type == CustomDamageType.PROJECTILE && profile != null && profile.category() != WeaponCategory.GENERIC) {
+        if (type == CustomDamageType.PROJECTILE && profile != null && profile.enabled()) {
             return Math.max(1.0F, profile.baseDamage());
         }
 
         return Math.max(1.0F, rawDamage);
+    }
+
+
+
+    private static float applyDistanceFalloff(
+            float damage,
+            ServerPlayer target,
+            Vec3 sourcePosition,
+            WeaponDamageProfile profile
+    ) {
+        if (target == null || profile == null || sourcePosition == null) return damage;
+        if (profile.maxRange() <= 0.0F) return damage;
+
+        double distance = target.position().distanceTo(sourcePosition);
+
+        if (distance <= profile.effectiveRange()) {
+            return damage;
+        }
+
+        if (distance >= profile.maxRange()) {
+            return Math.max(0.75F, damage * getMinimumRangeMultiplier(profile.category()));
+        }
+
+        double t = (distance - profile.effectiveRange()) / (profile.maxRange() - profile.effectiveRange());
+
+        float minMultiplier = getMinimumRangeMultiplier(profile.category());
+        float multiplier = (float) (1.0D - (t * (1.0F - minMultiplier)));
+
+        return Math.max(0.75F, damage * multiplier);
+    }
+
+    private static float getMinimumRangeMultiplier(WeaponCategory category) {
+        return switch (category) {
+            case SHOTGUN -> 0.04F;
+            case PISTOL -> 0.30F;
+            case SMG -> 0.25F;
+            case RIFLE -> 0.42F;
+            case SNIPER -> 0.55F;
+            case EXPLOSIVE -> 0.50F;
+            case MELEE, GENERIC -> 1.0F;
+        };
     }
 
     private static DamageResult calculateProjectileDamage(
@@ -121,6 +180,11 @@ public final class DamageProcessor {
     ) {
         WeaponCategory category = profile == null ? WeaponCategory.GENERIC : profile.category();
 
+        AmmoCaliberProfile caliber = profile == null ? null : profile.caliberProfile();
+
+        float caliberBloodMultiplier = caliber == null ? 1.0F : caliber.bloodMultiplier();
+        float caliberShockMultiplier = caliber == null ? 1.0F : caliber.shockMultiplier();
+
         float weaponBodyMultiplier = profile == null ? 1.0F : profile.bodyDamageMultiplier();
         float weaponBloodMultiplier = profile == null ? 1.0F : profile.bloodLossMultiplier();
         float weaponShockMultiplier = profile == null ? 1.0F : profile.shockMultiplier();
@@ -129,51 +193,73 @@ public final class DamageProcessor {
         boolean highPenetration = profile != null && profile.isHighPenetration();
 
         float categoryBodyMultiplier = switch (category) {
-            case PISTOL -> 0.95F;
-            case SMG -> 0.78F;
-            case RIFLE -> 0.92F;
-            case SHOTGUN -> 1.05F;
-            case SNIPER -> 1.15F;
+            case PISTOL -> 0.72F;
+            case SMG -> 0.58F;
+            case RIFLE -> 0.72F;
+            case SHOTGUN -> 0.85F;
+            case SNIPER -> 1.05F;
             case EXPLOSIVE -> 1.20F;
-            case MELEE, GENERIC -> 0.85F;
+            case MELEE, GENERIC -> 0.70F;
         };
 
         float categoryBloodMultiplier = switch (category) {
-            case PISTOL -> 0.95F;
-            case SMG -> 0.80F;
-            case RIFLE -> 1.00F;
-            case SHOTGUN -> 1.25F;
-            case SNIPER -> 1.35F;
+            case PISTOL -> 0.80F;
+            case SMG -> 0.72F;
+            case RIFLE -> 0.88F;
+            case SHOTGUN -> 1.05F;
+            case SNIPER -> 1.20F;
             case EXPLOSIVE -> 1.25F;
-            case MELEE, GENERIC -> 0.85F;
+            case MELEE, GENERIC -> 0.75F;
         };
 
         float categoryShockMultiplier = switch (category) {
-            case PISTOL -> 0.95F;
-            case SMG -> 0.85F;
-            case RIFLE -> 1.05F;
-            case SHOTGUN -> 1.25F;
-            case SNIPER -> 1.45F;
+            case PISTOL -> 1.05F;
+            case SMG -> 0.95F;
+            case RIFLE -> 1.15F;
+            case SHOTGUN -> 1.35F;
+            case SNIPER -> 1.55F;
             case EXPLOSIVE -> 1.50F;
             case MELEE, GENERIC -> 0.85F;
         };
 
         int baseBodyDamage = Math.max(1, Math.round(
-                rawDamage * 0.85F * weaponBodyMultiplier * categoryBodyMultiplier
+                rawDamage * 0.70F * weaponBodyMultiplier * categoryBodyMultiplier
         ));
 
-        float partBodyMultiplier = bodyDamageMultiplier(part);
+        float partBodyMultiplier = switch (part) {
+            case HEAD -> switch (category) {
+                case PISTOL -> 1.45F;
+                case SMG -> 1.35F;
+                case RIFLE -> 1.55F;
+                case SHOTGUN -> 1.35F;
+                case SNIPER -> 2.10F;
+                default -> 1.30F;
+            };
+            case TORSO -> 0.95F;
+            case LEFT_ARM, RIGHT_ARM -> 0.45F;
+            case LEFT_LEG, RIGHT_LEG -> 0.55F;
+        };
+
         float partBloodMultiplier = bloodMultiplier(part);
         float partShockMultiplier = shockMultiplier(part);
 
         int bodyDamage = Math.max(1, Math.round(baseBodyDamage * partBodyMultiplier));
 
         int bloodLoss = Math.max(0, Math.round(
-                bodyDamage * 0.45F * weaponBloodMultiplier * categoryBloodMultiplier * partBloodMultiplier
+                bodyDamage
+                        * 0.30F
+                        * caliberBloodMultiplier
+                        * weaponBloodMultiplier
+                        * categoryBloodMultiplier
+                        * partBloodMultiplier
         ));
 
         int shock = Math.max(1, Math.round(
-                shockFor(severity) * weaponShockMultiplier * categoryShockMultiplier * partShockMultiplier
+                shockFor(severity)
+                        * caliberShockMultiplier
+                        * weaponShockMultiplier
+                        * categoryShockMultiplier
+                        * partShockMultiplier
         ));
 
         BleedingType bleeding = resolveProjectileBleeding(
@@ -186,31 +272,56 @@ public final class DamageProcessor {
         );
 
         if (part == BodyPart.HEAD) {
-            shock += highPenetration ? 45 : 25;
-            bloodLoss += highPenetration ? 12 : 6;
+            shock += switch (category) {
+                case PISTOL -> 28;
+                case SMG -> 24;
+                case RIFLE -> 38;
+                case SHOTGUN -> 42;
+                case SNIPER -> 70;
+                default -> 20;
+            };
+
+            bloodLoss += switch (category) {
+                case PISTOL, SMG -> 4;
+                case RIFLE -> 7;
+                case SHOTGUN -> 8;
+                case SNIPER -> 16;
+                default -> 3;
+            };
 
             if (category == WeaponCategory.SNIPER && highPenetration) {
-                bodyDamage += 12;
+                bodyDamage += 10;
                 bleeding = BleedingType.HEAVY;
+            } else {
+                bleeding = maxBleeding(bleeding, BleedingType.MEDIUM);
             }
         }
 
         if (part == BodyPart.TORSO) {
-            shock += 10;
+            shock += switch (category) {
+                case PISTOL -> 8;
+                case SMG -> 7;
+                case RIFLE -> 16;
+                case SHOTGUN -> 20;
+                case SNIPER -> 35;
+                default -> 6;
+            };
 
-            if (category == WeaponCategory.SNIPER || category == WeaponCategory.SHOTGUN) {
+            if (category == WeaponCategory.SNIPER) {
                 bleeding = maxBleeding(bleeding, BleedingType.HEAVY);
+            } else if (category == WeaponCategory.SHOTGUN || category == WeaponCategory.RIFLE) {
+                bleeding = maxBleeding(bleeding, BleedingType.MEDIUM);
             }
         }
 
         if (part == BodyPart.LEFT_ARM || part == BodyPart.RIGHT_ARM) {
-            bloodLoss = Math.max(1, Math.round(bloodLoss * 0.75F));
-            shock = Math.max(2, Math.round(shock * 0.80F));
+            bloodLoss = Math.max(0, Math.round(bloodLoss * 0.65F));
+            shock = Math.max(1, Math.round(shock * 0.70F));
         }
 
         if (part == BodyPart.LEFT_LEG || part == BodyPart.RIGHT_LEG) {
-            bloodLoss = Math.max(1, Math.round(bloodLoss * 0.85F));
-            shock = Math.max(2, Math.round(shock * 0.90F));
+            bloodLoss = Math.max(0, Math.round(bloodLoss * 0.75F));
+            shock = Math.max(1, Math.round(shock * 0.80F));
         }
 
         return new DamageResult(
@@ -262,24 +373,81 @@ public final class DamageProcessor {
     }
 
     private static DamageResult calculateFallDamage(float rawDamage, DamageSeverity severity) {
-        int damage = Math.max(1, Math.round(rawDamage * 0.75F));
+        int fallDamage = Math.max(1, Math.round(rawDamage));
+
+        // Minecraft normalmente empieza a dañar después de ~3 bloques.
+        // Entonces aproximamos altura real como daño + 3.
+        int estimatedFallBlocks = fallDamage + 3;
+
         DamageResult result = DamageResult.empty();
 
-        result.addPartDamage(BodyPart.LEFT_LEG, damage, damage >= 8 ? BleedingType.MEDIUM : BleedingType.NONE);
-        result.addPartDamage(BodyPart.RIGHT_LEG, damage, damage >= 8 ? BleedingType.MEDIUM : BleedingType.NONE);
+        int legDamage;
+        int torsoDamage = 0;
+        int headDamage = 0;
+        int bloodLoss = 0;
+        int shock;
+        BleedingType legBleed;
 
-        if (damage >= 5) {
-            result.addPartDamage(BodyPart.TORSO, Math.max(1, damage / 2), BleedingType.NONE);
-            result.addBloodLoss(Math.max(1, damage / 4));
+        if (estimatedFallBlocks <= 5) {
+            legDamage = 5;
+            shock = 10;
+            legBleed = BleedingType.NONE;
+
+        } else if (estimatedFallBlocks <= 8) {
+            legDamage = 9;
+            torsoDamage = 1;
+            shock = 18;
+            legBleed = BleedingType.LIGHT;
+
+        } else if (estimatedFallBlocks <= 12) {
+            legDamage = 14;
+            torsoDamage = 4;
+            bloodLoss = 2;
+            shock = 32;
+            legBleed = BleedingType.LIGHT;
+
+        } else if (estimatedFallBlocks <= 16) {
+            legDamage = 22;
+            torsoDamage = 12;
+            headDamage = 2;
+            bloodLoss = 6;
+            shock = 70;
+            legBleed = BleedingType.MEDIUM;
+
+        } else if (estimatedFallBlocks <= 20) {
+            legDamage = 26;
+            torsoDamage = 22;
+            headDamage = 4;
+            bloodLoss = 10;
+            shock = 90;
+            legBleed = BleedingType.HEAVY;
+
+        } else {
+            legDamage = 30;
+            torsoDamage = 35;
+            headDamage = 8;
+            bloodLoss = 18;
+            shock = 100;
+            legBleed = BleedingType.HEAVY;
         }
 
-        if (damage >= 9) {
-            result.addPartDamage(BodyPart.HEAD, Math.max(1, damage / 3), BleedingType.NONE);
-            result.addShock(18);
+        result.addPartDamage(BodyPart.LEFT_LEG, legDamage, legBleed);
+        result.addPartDamage(BodyPart.RIGHT_LEG, legDamage, legBleed);
+
+        if (torsoDamage > 0) {
+            result.addPartDamage(BodyPart.TORSO, torsoDamage, BleedingType.NONE);
         }
 
-        result.addShock(shockFor(severity) + damage);
-        result.setEffectIntensity(effectIntensity(severity, WeaponCategory.GENERIC));
+        if (headDamage > 0) {
+            result.addPartDamage(BodyPart.HEAD, headDamage, BleedingType.NONE);
+        }
+
+        if (bloodLoss > 0) {
+            result.addBloodLoss(bloodLoss);
+        }
+
+        result.addShock(shock);
+        result.setEffectIntensity(estimatedFallBlocks >= 17 ? 1.0F : 0.75F);
 
         return result;
     }

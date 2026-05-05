@@ -48,6 +48,17 @@ public final class MedicalStateTickHandler {
 
             data.tickShockRecovery();
             data.applyBodyPartEffects();
+            data.tickRecentBloodLossWindow();
+
+            if (!data.isInconsciente()) {
+                int recentBloodLoss = previousBlood - data.getSangre();
+                int unconsciousTicks = MedicalUtils.getUnconsciousDurationTicks(data, recentBloodLoss);
+
+                if (unconsciousTicks > 0) {
+                    data.setInconsciente(true);
+                    data.setUnconsciousTicks(Math.max(data.getUnconsciousTicks(), unconsciousTicks));
+                }
+            }
 
             if (bleedingTick && previousBleeding != BleedingType.NONE && data.getSangre() < previousBlood) {
                 float intensity = switch (previousBleeding) {

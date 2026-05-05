@@ -4,6 +4,7 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import santi_moder.roleplaymod.RolePlayMod;
+import santi_moder.roleplaymod.server.command.MedicalDebugCommand;
 import santi_moder.roleplaymod.server.command.PhoneSimCommand;
 
 @Mod.EventBusSubscriber(modid = RolePlayMod.MOD_ID)
@@ -15,5 +16,9 @@ public final class ModCommandEvents {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         PhoneSimCommand.register(event.getDispatcher());
+        MedicalDebugCommand.register(event.getDispatcher());
+
     }
+
+
 }

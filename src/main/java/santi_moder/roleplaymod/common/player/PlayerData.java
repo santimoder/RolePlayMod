@@ -8,6 +8,11 @@ import java.util.Map;
 
 public class PlayerData implements IPlayerData {
 
+    private static final int BLOOD_LOSS_WINDOW_TICKS = 20 * 10; // 10 segundos
+
+    private int recentBloodLoss = 0;
+    private int recentBloodLossTicks = 0;
+
     private static final int DEFAULT_BODY_HP = 30;
     private static final int HEAD_MAX_HP = 20;
     private static final int TORSO_MAX_HP = 60;
@@ -59,6 +64,8 @@ public class PlayerData implements IPlayerData {
         this.staminaExhausted = false;
         this.staminaRegenBuffer = 0;
         this.unconsciousTicks = 0;
+        this.recentBloodLoss = 0;
+        this.recentBloodLossTicks = 0;
 
         applyBodyPartEffects();
     }
@@ -72,6 +79,9 @@ public class PlayerData implements IPlayerData {
         this.sueno = 100;
         this.shock = 0;
         this.unconsciousTicks = 0;
+
+        this.recentBloodLoss = 0;
+        this.recentBloodLossTicks = 0;
 
         this.inconsciente = false;
         this.contadorInconsciencias = 0;
@@ -98,7 +108,49 @@ public class PlayerData implements IPlayerData {
 
     @Override
     public void setSangre(int value) {
-        sangre = clampPercent(value);
+        int previous = this.sangre;
+        int next = clampPercent(value);
+
+        this.sangre = next;
+
+        int lost = previous - next;
+        if (lost > 0) {
+            addRecentBloodLoss(lost);
+        }
+    }
+
+    @Override
+    public int getRecentBloodLoss() {
+        return recentBloodLoss;
+    }
+
+    @Override
+    public void addRecentBloodLoss(int amount) {
+        if (amount <= 0) return;
+
+        recentBloodLoss = Math.min(100, recentBloodLoss + amount);
+        recentBloodLossTicks = BLOOD_LOSS_WINDOW_TICKS;
+    }
+
+    @Override
+    public void tickRecentBloodLossWindow() {
+        if (recentBloodLossTicks <= 0) {
+            recentBloodLoss = 0;
+            return;
+        }
+
+        recentBloodLossTicks -= 20;
+
+        if (recentBloodLossTicks <= 0) {
+            recentBloodLoss = 0;
+            recentBloodLossTicks = 0;
+        }
+    }
+
+    @Override
+    public void resetRecentBloodLoss() {
+        recentBloodLoss = 0;
+        recentBloodLossTicks = 0;
     }
 
     @Override
@@ -210,16 +262,6 @@ public class PlayerData implements IPlayerData {
 
     public void setContadorInconsciencias(int value) {
         contadorInconsciencias = Math.max(0, value);
-    }
-
-    @Override
-    public void incrementarInconsciencias() {
-        contadorInconsciencias++;
-    }
-
-    @Override
-    public void resetInconsciencias() {
-        contadorInconsciencias = 0;
     }
 
     @Override
@@ -375,25 +417,59 @@ public class PlayerData implements IPlayerData {
     @Override
     public void applyBodyPartEffects() {
 
-        boolean armsOk =
-                getBodyHp(BodyPart.LEFT_ARM) > 5 &&
-                        getBodyHp(BodyPart.RIGHT_ARM) > 5;
+        int leftArm = getBodyHp(BodyPart.LEFT_ARM);
+        int rightArm = getBodyHp(BodyPart.RIGHT_ARM);
+        int leftLeg = getBodyHp(BodyPart.LEFT_LEG);
+        int rightLeg = getBodyHp(BodyPart.RIGHT_LEG);
+        int torso = getBodyHp(BodyPart.TORSO);
+        int head = getBodyHp(BodyPart.HEAD);
 
-        boolean legsOk =
-                getBodyHp(BodyPart.LEFT_LEG) > 6 &&
-                        getBodyHp(BodyPart.RIGHT_LEG) > 6;
-
+        // =========================
+        // BRAZOS
+        // =========================
+        boolean armsOk = leftArm > 5 && rightArm > 5;
         canAttack = armsOk;
-        canSprint = legsOk;
 
-        staminaMultiplier = getBodyHp(BodyPart.TORSO) <= 20 ? 0.65f : 1.0f;
+        // =========================
+        // PIERNAS (NUEVO SISTEMA)
+        // =========================
+        int avgLeg = (leftLeg + rightLeg) / 2;
 
+        if (avgLeg <= 3) {
+            canSprint = false;
+            staminaMultiplier = 0.35f;
+        }
+        else if (avgLeg <= 8) {
+            canSprint = false;
+            staminaMultiplier = 0.6f;
+        }
+        else if (avgLeg <= 15) {
+            canSprint = true;
+            staminaMultiplier = 0.8f;
+        }
+        else {
+            canSprint = true;
+            staminaMultiplier = 1.0f;
+        }
+
+        // =========================
+        // TORSO
+        // =========================
+        if (torso <= 25) {
+            staminaMultiplier *= 0.7f;
+        }
+
+        // =========================
+        // VISIÓN
+        // =========================
         visionBlurred =
-                getBodyHp(BodyPart.HEAD) <= 8 ||
+                head <= 8 ||
                         shock >= 65 ||
                         sangre <= 35;
 
-        // overrides globales
+        // =========================
+        // OVERRIDES GLOBALES
+        // =========================
         if (shock >= 75 || sangre <= 25) {
             canSprint = false;
         }

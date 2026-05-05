@@ -41,6 +41,8 @@ public class PlayerDataProvider implements ICapabilitySerializable<CompoundTag> 
         tag.putInt("shock", data.getShock());
         tag.putInt("unconsciousTicks", data.getUnconsciousTicks());
 
+        tag.putInt("recentBloodLoss", data.getRecentBloodLoss());
+
         tag.putBoolean("inconsciente", data.isInconsciente());
         tag.putInt("inconsciencias", data.getContadorInconsciencias());
 
@@ -62,6 +64,8 @@ public class PlayerDataProvider implements ICapabilitySerializable<CompoundTag> 
         data.setFatiga(tag.getInt("fatiga"));
         data.setSueno(tag.getInt("sueno"));
         data.setShock(tag.getInt("shock"));
+
+        data.addRecentBloodLoss(tag.getInt("recentBloodLoss"));
 
         data.setUnconsciousTicks(tag.getInt("unconsciousTicks"));
 
