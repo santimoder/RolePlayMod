@@ -41,8 +41,11 @@ public final class PhoneLockedHudRenderer {
         );
 
         String networkText = PhoneData.hasSim(phoneStack) ? "4G" : "";
+        int batteryX = innerRight - 18;
+
         if (!networkText.isBlank()) {
-            int networkX = innerRight - screen.getPhoneFont().width(networkText) - 26;
+            int networkGap = 4;
+            int networkX = batteryX - networkGap - screen.getPhoneFont().width(networkText);
 
             guiGraphics.drawString(
                     screen.getPhoneFont(),
@@ -54,7 +57,7 @@ public final class PhoneLockedHudRenderer {
             );
         }
 
-        drawBattery(guiGraphics, innerRight - 18, phoneY + STATUS_TOP_PADDING, BATTERY_WIDTH, BATTERY_HEIGHT);
+        drawBattery(guiGraphics, batteryX, phoneY + STATUS_TOP_PADDING, BATTERY_WIDTH, BATTERY_HEIGHT);
     }
 
     private static void drawBattery(GuiGraphics guiGraphics, int x, int y, int width, int height) {

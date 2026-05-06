@@ -143,7 +143,7 @@ public final class WhatsappServerService {
         );
     }
 
-    public static void handleSendMessage(ServerPlayer senderPlayer, String contactId, String text) {
+    public static void handleSendMessage(ServerPlayer senderPlayer, String phoneNumber, String text) {
         if (senderPlayer == null || text == null || text.isBlank()) {
             return;
         }
@@ -161,19 +161,61 @@ public final class WhatsappServerService {
         data.getOrCreateProfile(senderAccountId, senderAccount.displayName());
         syncOwnedPresences(senderPlayer);
 
-        WhatsappContact senderContact = data.findContactForOwner(senderAccountId, contactId);
-        if (senderContact == null || senderContact.blocked()) {
+        WhatsappContact senderContact = data.getOrCreateContacts(senderAccountId)
+                .stream()
+                .filter(c -> samePhone(phoneNumber, c.phoneNumber()))
+                .findFirst()
+                .orElse(null);
+
+        if (senderContact == null) {
+            senderContact = WhatsappContact.of(
+                    phoneNumber,
+                    phoneNumber,
+                    WhatsappContact.DEFAULT_PHOTO,
+                    "",
+                    false,
+                    0,
+                    0
+            );
+            data.getOrCreateContacts(senderAccountId).add(senderContact);
+        }
+
+        if (senderContact.blocked()) {
             return;
         }
 
-        WhatsappChat senderChat = data.findChatByContactId(senderAccountId, contactId);
-        if (senderChat == null) {
-            senderChat = data.createChat(senderAccountId, contactId);
+        WhatsappAccount targetAccount = data.getOrCreateAccountByPhone(
+                senderContact.phoneNumber(),
+                senderContact.displayName()
+        );
+
+        if (targetAccount == null) {
+            return;
+        }
+
+        UUID targetAccountId = targetAccount.accountId();
+
+        data.getOrCreateProfile(targetAccountId, targetAccount.displayName());
+
+        WhatsappContact reverseContact = findOrCreateMirrorContact(
+                data,
+                targetAccountId,
+                senderAccount.phoneNumber(),
+                senderAccount.phoneNumber()
+        );
+
+        if (reverseContact.blocked()) {
+            return;
         }
 
         long now = System.currentTimeMillis();
         String timeText = LocalTime.now().format(TIME_FORMATTER);
         String cleanText = text.trim();
+
+        WhatsappChat senderChat = data.findChatByContactId(senderAccountId, senderContact.id());
+        if (senderChat == null) {
+            senderChat = data.createChat(senderAccountId, senderContact.id());
+        }
 
         WhatsappMessage senderMessage = WhatsappMessage.of(
                 cleanText,
@@ -188,47 +230,39 @@ public final class WhatsappServerService {
         senderChat.clearUnreadCount();
         data.sortChats(senderAccountId);
 
-        WhatsappAccount targetAccount = data.findAccountByPhone(senderContact.phoneNumber());
+        WhatsappChat targetChat = data.findChatByContactId(targetAccountId, reverseContact.id());
 
-        if (targetAccount != null) {
-            UUID targetAccountId = targetAccount.accountId();
+        if (targetChat == null) {
+            targetChat = data.createChat(targetAccountId, reverseContact.id());
+        }
 
-            data.getOrCreateProfile(targetAccountId, targetAccount.displayName());
+        WhatsappMessage incomingMessage = WhatsappMessage.of(
+                cleanText,
+                false,
+                timeText,
+                now,
+                WhatsappMessageStatus.SENT,
+                now
+        );
 
-            WhatsappContact reverseContact = findOrCreateMirrorContact(
-                    data,
-                    targetAccountId,
-                    senderAccount.displayName(),
-                    senderAccount.phoneNumber()
+        targetChat.addMessage(incomingMessage);
+        targetChat.incrementUnreadCount();
+        data.sortChats(targetAccountId);
+
+        ServerPlayer targetPlayer = findOnlinePlayerByPhone(level, senderContact.phoneNumber());
+
+        if (targetPlayer != null) {
+            targetAccount.setLastKnownPlayerUuid(targetPlayer.getUUID());
+
+            ModNetwork.sendWhatsappToClient(
+                    new WhatsappContactUpdatedS2CPacket(buildContactPayload(reverseContact)),
+                    PacketDistributor.PLAYER.with(() -> targetPlayer)
             );
 
-            WhatsappChat targetChat = data.findChatByContactId(targetAccountId, reverseContact.id());
-            if (targetChat == null) {
-                targetChat = data.createChat(targetAccountId, reverseContact.id());
-            }
-
-            WhatsappMessage incomingMessage = WhatsappMessage.of(
-                    cleanText,
-                    false,
-                    timeText,
-                    now,
-                    WhatsappMessageStatus.SENT,
-                    now
+            ModNetwork.sendWhatsappToClient(
+                    new WhatsappMessageAddedS2CPacket(buildChatPayload(targetChat)),
+                    PacketDistributor.PLAYER.with(() -> targetPlayer)
             );
-
-            targetChat.addMessage(incomingMessage);
-            targetChat.incrementUnreadCount();
-            data.sortChats(targetAccountId);
-
-            ServerPlayer targetPlayer = getOnlinePlayerForAccount(level, targetAccount);
-            if (targetPlayer != null) {
-                syncOwnedPresences(targetPlayer);
-
-                ModNetwork.sendWhatsappToClient(
-                        new WhatsappMessageAddedS2CPacket(buildChatPayload(targetChat)),
-                        PacketDistributor.PLAYER.with(() -> targetPlayer)
-                );
-            }
         }
 
         data.setDirty();
@@ -497,7 +531,7 @@ public final class WhatsappServerService {
         }
 
         for (WhatsappContact existing : data.getOrCreateContacts(accountId)) {
-            if (cleanPhone.equals(existing.phoneNumber())) {
+            if (samePhone(cleanPhone, existing.phoneNumber())) {
                 ModNetwork.sendWhatsappToClient(
                         new WhatsappContactCreatedS2CPacket(
                                 buildContactPayload(existing),
@@ -634,7 +668,7 @@ public final class WhatsappServerService {
             String phoneNumber
     ) {
         for (WhatsappContact contact : data.getOrCreateContacts(accountId)) {
-            if (phoneNumber.equals(contact.phoneNumber())) {
+            if (samePhone(phoneNumber, contact.phoneNumber())) {
                 return contact;
             }
         }
@@ -660,7 +694,7 @@ public final class WhatsappServerService {
             String phoneNumber
     ) {
         for (WhatsappContact contact : data.getOrCreateContacts(accountId)) {
-            if (phoneNumber.equals(contact.phoneNumber())) {
+            if (samePhone(phoneNumber, contact.phoneNumber())) {
                 return contact;
             }
         }
@@ -687,6 +721,51 @@ public final class WhatsappServerService {
         }
 
         return level.getServer().getPlayerList().getPlayer(account.lastKnownPlayerUuid());
+    }
+
+    private static ServerPlayer findOnlinePlayerByPhone(ServerLevel level, String phoneNumber) {
+        if (level == null || phoneNumber == null || phoneNumber.isBlank()) {
+            return null;
+        }
+
+        for (ServerPlayer player : level.getServer().getPlayerList().getPlayers()) {
+            String activePhoneNumber = PhoneItemResolver.getActivePhoneNumber(player);
+
+            if (samePhone(phoneNumber, activePhoneNumber)) {
+                return player;
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean samePhone(String a, String b) {
+        String normalizedA = normalizePhoneForCompare(a);
+        String normalizedB = normalizePhoneForCompare(b);
+
+        return !normalizedA.isBlank() && normalizedA.equals(normalizedB);
+    }
+
+    private static String normalizePhoneForCompare(String value) {
+        if (value == null) return "";
+
+        StringBuilder digits = new StringBuilder();
+
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+
+        String result = digits.toString();
+
+        // Uruguay: nos quedamos con los últimos 9 dígitos.
+        if (result.length() > 9) {
+            result = result.substring(result.length() - 9);
+        }
+
+        return result;
     }
 
     public static WhatsappChatPayload buildChatPayload(WhatsappChat chat) {

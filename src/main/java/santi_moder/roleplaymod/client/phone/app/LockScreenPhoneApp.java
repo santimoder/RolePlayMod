@@ -33,8 +33,6 @@ public class LockScreenPhoneApp extends AbstractPhoneApp {
         String timeText = LocalTime.now().format(TIME_FORMATTER);
         String dateText = capitalizeFirst(LocalDate.now().format(DATE_FORMATTER));
 
-        drawLargeCenteredText(guiGraphics, screen, timeText, centerX, phoneY + TIME_Y_OFFSET, COLOR_WHITE, 2.0F);
-
         guiGraphics.drawCenteredString(
                 screen.getPhoneFont(),
                 dateText,

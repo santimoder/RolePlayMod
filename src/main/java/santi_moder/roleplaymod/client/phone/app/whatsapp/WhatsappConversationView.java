@@ -3,6 +3,9 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
+import santi_moder.roleplaymod.RolePlayMod;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.whatsapp.model.WhatsappChat;
@@ -51,27 +54,30 @@ public final class WhatsappConversationView {
     private static final int HEADER_CALL_RIGHT_OFFSET = 10;
     private static final int HEADER_VIDEO_GAP = 16;
 
-    private static final int COLOR_HEADER_ICON = 0xFFFFFFFF;
+    private static final int COLOR_HEADER_ICON = 0xFF111111;
+    private static final int COLOR_HEADER_AVATAR_TEXT = 0xFFFFFFFF;
     private static final int COLOR_HEADER_AVATAR = 0xFF25D366;
-    private static final int COLOR_HEADER_AVATAR_TEXT = 0xFF081C15;
 
     private static final int SCROLL_STEP = 12;
 
-    private static final int COLOR_HEADER = 0xAA111111;
-    private static final int COLOR_INPUT = 0xCC1A1A1A;
-    private static final int COLOR_INPUT_DISABLED = 0x99202020;
-    private static final int COLOR_SENT = 0xFF25D366;
-    private static final int COLOR_RECEIVED = 0xFF202C33;
-    private static final int COLOR_TEXT_DARK = 0xFF081C15;
-    private static final int COLOR_TEXT_LIGHT = 0xFFFFFFFF;
-    private static final int COLOR_TIME_SENT = 0xCC103B2A;
-    private static final int COLOR_TIME_RECEIVED = 0xCCB8C8CC;
+    private static final int COLOR_HEADER = 0xEEFFFFFF;
+    private static final int COLOR_INPUT = 0xFFFFFFFF;
+    private static final int COLOR_INPUT_DISABLED = 0xFFE6E6E6;
+    private static final int COLOR_SENT = 0xFFDCF8C6;
+    private static final int COLOR_RECEIVED = 0xFFFFFFFF;
+    private static final int COLOR_TEXT_DARK = 0xFF111111;
+    private static final int COLOR_TEXT_LIGHT = 0xFF111111;
+    private static final int COLOR_TIME_SENT = 0xFF5F6F5F;
+    private static final int COLOR_TIME_RECEIVED = 0xFF777777;
 
     private static final int COLOR_TICK_GRAY = 0xFF98A6AD;
     private static final int COLOR_TICK_BLUE = 0xFF53BDEB;
 
     private int scrollOffset = 0;
     private int inputScrollOffset = 0;
+
+    private static final ResourceLocation CHAT_WALLPAPER =
+            new ResourceLocation(RolePlayMod.MOD_ID, "textures/gui/phone/wsp_chat_wallpaper.png");
 
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, WhatsappState state) {
         WhatsappChat currentChat = state.getSelectedChat();
@@ -80,9 +86,40 @@ public final class WhatsappConversationView {
             return;
         }
 
+        renderBaseBackground(screen, guiGraphics);
+        renderChatWallpaper(screen, guiGraphics);
         renderMessages(screen, guiGraphics, state);
         renderHeader(screen, guiGraphics, mouseX, mouseY, state, currentChat, currentContact);
         renderInput(screen, guiGraphics, mouseX, mouseY, state, currentContact);
+    }
+
+    private void renderBaseBackground(PhoneScreen screen, GuiGraphics guiGraphics) {
+        guiGraphics.fill(
+                screen.getPhoneX() + 4,
+                screen.getPhoneY() + 4,
+                screen.getPhoneX() + screen.getPhoneWidth() - 4,
+                screen.getPhoneY() + screen.getPhoneHeight() - 4,
+                PhoneThemeColors.appBackground(screen.getPhoneStack())
+        );
+    }
+
+    private void renderChatWallpaper(PhoneScreen screen, GuiGraphics guiGraphics) {
+        int x = screen.getPhoneX() + 8;
+        int y = screen.getPhoneY() + 42;
+        int w = screen.getPhoneWidth() - 16;
+        int h = screen.getPhoneHeight() - 64;
+
+        guiGraphics.blit(
+                CHAT_WALLPAPER,
+                x,
+                y,
+                0,
+                0,
+                w,
+                h,
+                w,
+                h
+        );
     }
 
     public boolean mouseClicked(PhoneScreen screen, double mouseX, double mouseY, int button, WhatsappState state) {
@@ -244,7 +281,14 @@ public final class WhatsappConversationView {
         );
 
         int nameX = screen.getPhoneX() + HEADER_NAME_X_OFFSET;
-        guiGraphics.drawString(screen.getPhoneFont(), state.getChatDisplayName(currentChat), nameX, screen.getPhoneY() + 31, PhoneUi.COLOR_TEXT, false);
+        guiGraphics.drawString(
+        screen.getPhoneFont(),
+        state.getChatDisplayName(currentChat),
+        nameX,
+        screen.getPhoneY() + 31,
+        PhoneThemeColors.text(screen.getPhoneStack()),
+        false
+);
 
         int callX = screen.getPhoneX() + screen.getPhoneWidth() - HEADER_CALL_RIGHT_OFFSET - HEADER_ACTION_SIZE;
         int videoX = callX - HEADER_VIDEO_GAP;
@@ -400,11 +444,11 @@ public final class WhatsappConversationView {
             int camX = x + inputWidth + 4;
             int audioX = camX + ACTION_BUTTON_WIDTH + ACTION_BUTTON_GAP;
 
-            guiGraphics.fill(camX, y, camX + ACTION_BUTTON_WIDTH, y + INPUT_HEIGHT, 0xFF2A3942);
-            guiGraphics.fill(audioX, y, audioX + ACTION_BUTTON_WIDTH, y + INPUT_HEIGHT, 0xFF2A3942);
+            guiGraphics.fill(camX, y, camX + ACTION_BUTTON_WIDTH, y + INPUT_HEIGHT, PhoneThemeColors.card(screen.getPhoneStack()));
+            guiGraphics.fill(audioX, y, audioX + ACTION_BUTTON_WIDTH, y + INPUT_HEIGHT, PhoneThemeColors.card(screen.getPhoneStack()));
 
-            guiGraphics.drawCenteredString(screen.getPhoneFont(), blocked ? "-" : "Cam", camX + ACTION_BUTTON_WIDTH / 2, y + 7, PhoneUi.COLOR_TEXT);
-            guiGraphics.drawCenteredString(screen.getPhoneFont(), blocked ? "-" : "Mic", audioX + ACTION_BUTTON_WIDTH / 2, y + 7, PhoneUi.COLOR_TEXT);
+            guiGraphics.drawCenteredString(screen.getPhoneFont(), blocked ? "-" : "Cam", camX + ACTION_BUTTON_WIDTH / 2, y + 7, PhoneThemeColors.text(screen.getPhoneStack()));
+            guiGraphics.drawCenteredString(screen.getPhoneFont(), blocked ? "-" : "Mic", audioX + ACTION_BUTTON_WIDTH / 2, y + 7, PhoneThemeColors.text(screen.getPhoneStack()));
         } else {
             int sendX = x + inputWidth + 4;
             boolean hoverSend = screen.isInside(mouseX, mouseY, sendX, y, ACTION_BUTTON_WIDTH, INPUT_HEIGHT);
@@ -475,13 +519,14 @@ public final class WhatsappConversationView {
 
         santi_moder.roleplaymod.network.ModNetwork.sendWhatsappToServer(
                 new santi_moder.roleplaymod.network.phone.whatsapp.WhatsappSendMessageC2SPacket(
-                        contact.id(),
+                        contact.phoneNumber(),
                         trimmed
                 )
         );
 
         state.clearDraftMessage();
         inputScrollOffset = 0;
+        scrollToBottomIfNeeded(screen, state);
     }
 
     private boolean isSendButton(PhoneScreen screen, double mouseX, double mouseY, WhatsappState state) {

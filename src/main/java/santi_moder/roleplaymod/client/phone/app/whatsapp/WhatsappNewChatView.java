@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.whatsapp.model.WhatsappContact;
@@ -23,17 +24,20 @@ public final class WhatsappNewChatView {
     private static final int SCROLL_STEP = 12;
 
     private static final int AVATAR_SIZE = 16;
-    private static final int COLOR_ROW = 0x22111111;
-    private static final int COLOR_ROW_HOVER = 0x44303030;
-    private static final int COLOR_DIVIDER = 0x22FFFFFF;
     private static final int COLOR_AVATAR = 0xFF25D366;
     private static final int COLOR_AVATAR_TEXT = 0xFF081C15;
-    private static final int COLOR_TEXT = 0xFFFFFFFF;
-    private static final int COLOR_SUBTEXT = 0xFFBEBEBE;
 
     private int scrollOffset = 0;
 
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, WhatsappState state) {
+        guiGraphics.fill(
+                screen.getPhoneX() + 4,
+                screen.getPhoneY() + 4,
+                screen.getPhoneX() + screen.getPhoneWidth() - 4,
+                screen.getPhoneY() + screen.getPhoneHeight() - 4,
+                PhoneThemeColors.appBackground(screen.getPhoneStack())
+        );
+
         PhoneUi.drawBackButton(screen, guiGraphics, mouseX, mouseY);
 
         guiGraphics.drawCenteredString(
@@ -41,7 +45,7 @@ public final class WhatsappNewChatView {
                 "Nuevo chat",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
-                PhoneUi.COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
 
         clampScroll(screen, state);
@@ -138,10 +142,10 @@ public final class WhatsappNewChatView {
     ) {
         boolean hover = screen.isInside(mouseX, mouseY, x, y, w, ROW_HEIGHT);
 
-        guiGraphics.fill(x, y, x + w, y + ROW_HEIGHT, hover ? COLOR_ROW_HOVER : COLOR_ROW);
-        guiGraphics.fill(x, y + ROW_HEIGHT - 1, x + w, y + ROW_HEIGHT, COLOR_DIVIDER);
+        guiGraphics.fill(x, y, x + w, y + ROW_HEIGHT, hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack()));
+        guiGraphics.fill(x, y + ROW_HEIGHT - 1, x + w, y + ROW_HEIGHT, PhoneThemeColors.divider(screen.getPhoneStack()));
 
-        guiGraphics.drawString(screen.getPhoneFont(), title, x + 6, y + 5, COLOR_TEXT, false);
+        guiGraphics.drawString(screen.getPhoneFont(), title, x + 6, y + 5, PhoneThemeColors.text(screen.getPhoneStack()), false);
 
         if (!subtitle.isBlank()) {
             guiGraphics.drawString(
@@ -149,7 +153,7 @@ public final class WhatsappNewChatView {
                     subtitle,
                     x + w - screen.getPhoneFont().width(subtitle) - 6,
                     y + 5,
-                    COLOR_SUBTEXT,
+                    PhoneThemeColors.subtext(screen.getPhoneStack()),
                     false
             );
         }
@@ -167,8 +171,8 @@ public final class WhatsappNewChatView {
     ) {
         boolean hover = screen.isInside(mouseX, mouseY, x, y, w, ROW_HEIGHT);
 
-        guiGraphics.fill(x, y, x + w, y + ROW_HEIGHT, hover ? COLOR_ROW_HOVER : COLOR_ROW);
-        guiGraphics.fill(x, y + ROW_HEIGHT - 1, x + w, y + ROW_HEIGHT, COLOR_DIVIDER);
+        guiGraphics.fill(x, y, x + w, y + ROW_HEIGHT, hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack()));
+        guiGraphics.fill(x, y + ROW_HEIGHT - 1, x + w, y + ROW_HEIGHT, PhoneThemeColors.divider(screen.getPhoneStack()));
 
         guiGraphics.fill(x + 4, y + 1, x + 4 + AVATAR_SIZE, y + 1 + AVATAR_SIZE, COLOR_AVATAR);
         guiGraphics.drawCenteredString(
@@ -179,7 +183,7 @@ public final class WhatsappNewChatView {
                 COLOR_AVATAR_TEXT
         );
 
-        guiGraphics.drawString(screen.getPhoneFont(), contact.displayName(), x + 24, y + 5, COLOR_TEXT, false);
+        guiGraphics.drawString(screen.getPhoneFont(), contact.displayName(), x + 24, y + 5, PhoneThemeColors.text(screen.getPhoneStack()), false);
     }
 
     private int getVisibleHeight(PhoneScreen screen) {

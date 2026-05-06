@@ -7,15 +7,15 @@ import santi_moder.roleplaymod.common.whatsapp.server.WhatsappServerService;
 
 import java.util.function.Supplier;
 
-public record WhatsappSendMessageC2SPacket(String contactId, String text) {
+public record WhatsappSendMessageC2SPacket(String phoneNumber, String text) {
 
-    public WhatsappSendMessageC2SPacket(String contactId, String text) {
-        this.contactId = contactId == null ? "" : contactId;
+    public WhatsappSendMessageC2SPacket(String phoneNumber, String text) {
+        this.phoneNumber = phoneNumber == null ? "" : phoneNumber;
         this.text = text == null ? "" : text;
     }
 
     public static void encode(WhatsappSendMessageC2SPacket packet, FriendlyByteBuf buf) {
-        buf.writeUtf(packet.contactId);
+        buf.writeUtf(packet.phoneNumber);
         buf.writeUtf(packet.text);
     }
 
@@ -35,7 +35,7 @@ public record WhatsappSendMessageC2SPacket(String contactId, String text) {
                 return;
             }
 
-            WhatsappServerService.handleSendMessage(player, packet.contactId(), packet.text());
+            WhatsappServerService.handleSendMessage(player, packet.phoneNumber(), packet.text());
         });
 
         context.setPacketHandled(true);

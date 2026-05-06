@@ -61,6 +61,40 @@ public final class WhatsappServerData extends SavedData {
         return value == null || value.isBlank();
     }
 
+    public WhatsappAccount findAccountByNormalizedPhone(String phoneNumber) {
+        String target = normalizePhoneForCompare(phoneNumber);
+        if (target.isBlank()) return null;
+
+        for (WhatsappAccount account : accountsById.values()) {
+            if (target.equals(normalizePhoneForCompare(account.phoneNumber()))) {
+                return account;
+            }
+        }
+
+        return null;
+    }
+
+    private static String normalizePhoneForCompare(String value) {
+        if (value == null) return "";
+
+        StringBuilder digits = new StringBuilder();
+
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+
+        String result = digits.toString();
+
+        if (result.length() > 9) {
+            result = result.substring(result.length() - 9);
+        }
+
+        return result;
+    }
+
     @Override
     public CompoundTag save(CompoundTag tag) {
         tag.put(TAG_ACCOUNTS, saveAccounts());
@@ -84,6 +118,10 @@ public final class WhatsappServerData extends SavedData {
         WhatsappAccount existing = findAccountBySimId(simId);
         if (existing == null) {
             existing = findAccountByPhone(phoneNumber);
+        }
+
+        if (existing == null) {
+            existing = findAccountByNormalizedPhone(phoneNumber);
         }
 
         if (existing != null) {
@@ -126,6 +164,11 @@ public final class WhatsappServerData extends SavedData {
         }
 
         WhatsappAccount existing = findAccountByPhone(phoneNumber);
+
+        if (existing == null) {
+            existing = findAccountByNormalizedPhone(phoneNumber);
+        }
+
         if (existing != null) {
             ensureContainers(existing.accountId(), existing.displayName(), existing.phoneNumber());
             return existing;

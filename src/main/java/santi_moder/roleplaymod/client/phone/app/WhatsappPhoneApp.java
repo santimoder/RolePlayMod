@@ -95,6 +95,19 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
         var chatPayloads = WhatsappClientSyncApplier.consumePendingChatPayloads();
         for (var payload : chatPayloads) {
             WhatsappClientSyncApplier.applyChatPayloadToState(state, payload);
+
+            if (state.isConversationOpen()
+                    && state.getSelectedChat() != null
+                    && state.getSelectedChat().id().equals(payload.id())) {
+
+                state.getSelectedChat().clearUnreadCount();
+
+                ModNetwork.sendWhatsappToServer(
+                        new WhatsappMarkChatReadC2SPacket(payload.id())
+                );
+
+                conversationView.onConversationOpened(screen, state);
+            }
         }
 
         var statusPayloads = WhatsappClientSyncApplier.consumePendingStatusPayloads();

@@ -93,9 +93,7 @@ public final class PhoneWallpaperRenderer {
             guiGraphics.fill(x, y, x + width, y + height, FALLBACK_COLOR);
         }
 
-        if (includeOverlay) {
-            guiGraphics.fill(x, y + 26, x + width, y + height, WALLPAPER_OVERLAY_COLOR);
-        } else {
+        if (!includeOverlay) {
             guiGraphics.fill(x, y, x + width, y + height, PREVIEW_OVERLAY_COLOR);
         }
     }

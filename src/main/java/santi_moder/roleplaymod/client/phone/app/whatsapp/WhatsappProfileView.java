@@ -1,6 +1,7 @@
 package santi_moder.roleplaymod.client.phone.app.whatsapp;
 
 import net.minecraft.client.gui.GuiGraphics;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.whatsapp.model.WhatsappProfile;
@@ -27,12 +28,6 @@ public final class WhatsappProfileView {
     private static final int FIELD_TEXT_PADDING_X = 5;
     private static final int FIELD_TEXT_PADDING_Y = 4;
 
-    private static final int COLOR_FIELD_BG = 0xCC1A1A1A;
-    private static final int COLOR_FIELD_BG_ACTIVE = 0xFF263238;
-    private static final int COLOR_VALUE = 0xFFFFFFFF;
-    private static final int COLOR_HINT = 0xFF9A9A9A;
-    private static final int COLOR_SECTION = 0xFFBEBEBE;
-
     private static final int SHEET_SIDE_MARGIN = 8;
     private static final int SHEET_BOTTOM_OFFSET = 8;
     private static final int SHEET_OPTION_HEIGHT = 18;
@@ -41,12 +36,9 @@ public final class WhatsappProfileView {
     private static final int SHEET_HANDLE_WIDTH = 26;
     private static final int SHEET_HANDLE_HEIGHT = 3;
 
-    private static final int COLOR_SHEET_BG = 0xEE111111;
     private static final int COLOR_SHEET_HANDLE = 0x66FFFFFF;
     private static final int COLOR_SHEET_OPTION = 0x00000000;
     private static final int COLOR_SHEET_OPTION_HOVER = 0x2233FF99;
-    private static final int COLOR_SHEET_TEXT = 0xFFFFFFFF;
-    private static final int COLOR_SHEET_DISABLED = 0xFF6F6F6F;
     private static final int COLOR_SHEET_SEPARATOR = 0x22FFFFFF;
     private static final int COLOR_OVERLAY = 0x66000000;
 
@@ -58,6 +50,13 @@ public final class WhatsappProfileView {
     private boolean photoSheetOpen = false;
 
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, WhatsappState state) {
+        guiGraphics.fill(
+                screen.getPhoneX() + 4,
+                screen.getPhoneY() + 4,
+                screen.getPhoneX() + screen.getPhoneWidth() - 4,
+                screen.getPhoneY() + screen.getPhoneHeight() - 4,
+                PhoneThemeColors.appBackground(screen.getPhoneStack())
+        );
         WhatsappProfile profile = state.getProfile();
 
         PhoneUi.drawBackButton(screen, guiGraphics, mouseX, mouseY);
@@ -67,7 +66,7 @@ public final class WhatsappProfileView {
                 "Perfil",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
-                PhoneUi.COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
 
         renderPhoto(screen, guiGraphics, profile);
@@ -312,7 +311,7 @@ public final class WhatsappProfileView {
                 label,
                 labelX,
                 labelY,
-                COLOR_SECTION,
+                PhoneThemeColors.subtext(screen.getPhoneStack()),
                 false
         );
 
@@ -321,7 +320,7 @@ public final class WhatsappProfileView {
                 boxY,
                 boxX + boxWidth,
                 boxY + FIELD_BOX_HEIGHT,
-                active ? COLOR_FIELD_BG_ACTIVE : COLOR_FIELD_BG
+                active ? PhoneThemeColors.inputActive(screen.getPhoneStack()) : PhoneThemeColors.input(screen.getPhoneStack())
         );
 
         boolean empty = value == null || value.isEmpty();
@@ -330,7 +329,7 @@ public final class WhatsappProfileView {
                 empty ? placeholder : value,
                 boxX + FIELD_TEXT_PADDING_X,
                 boxY + FIELD_TEXT_PADDING_Y,
-                empty ? COLOR_HINT : COLOR_VALUE,
+                empty ? PhoneThemeColors.hint(screen.getPhoneStack()) : PhoneThemeColors.text(screen.getPhoneStack()),
                 false
         );
     }
@@ -351,7 +350,7 @@ public final class WhatsappProfileView {
         int w = getSheetWidth(screen);
         int h = getSheetHeight();
 
-        guiGraphics.fill(x, y, x + w, y + h, COLOR_SHEET_BG);
+        guiGraphics.fill(x, y, x + w, y + h, PhoneThemeColors.sheet(screen.getPhoneStack()));
 
         int handleX = x + (w - SHEET_HANDLE_WIDTH) / 2;
         int handleY = y + 4;
@@ -425,7 +424,7 @@ public final class WhatsappProfileView {
                 label,
                 x + w / 2,
                 y + 5,
-                enabled ? COLOR_SHEET_TEXT : COLOR_SHEET_DISABLED
+                enabled ? PhoneThemeColors.text(screen.getPhoneStack()) : PhoneThemeColors.hint(screen.getPhoneStack())
         );
     }
 

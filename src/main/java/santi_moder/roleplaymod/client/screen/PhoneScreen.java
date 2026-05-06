@@ -430,7 +430,45 @@ public class PhoneScreen extends Screen {
         }
 
         renderHomeIndicator(guiGraphics, mouseX, mouseY);
+        renderFrontCamera(guiGraphics);
+
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    private void renderFrontCamera(GuiGraphics guiGraphics) {
+        int notchX = phoneX + (PHONE_WIDTH - NOTCH_WIDTH) / 2;
+        int notchY = phoneY + PHONE_INNER_PADDING;
+
+        // notch
+        guiGraphics.fill(
+                notchX,
+                notchY,
+                notchX + NOTCH_WIDTH,
+                notchY + NOTCH_HEIGHT,
+                NOTCH_COLOR
+        );
+
+        // cámara
+        int cameraSize = 4;
+        int cameraX = phoneX + PHONE_WIDTH / 2 - cameraSize / 2;
+        int cameraY = notchY + (NOTCH_HEIGHT - cameraSize) / 2;
+
+        guiGraphics.fill(
+                cameraX,
+                cameraY,
+                cameraX + cameraSize,
+                cameraY + cameraSize,
+                0xFF1A1A1A
+        );
+
+        // brillo
+        guiGraphics.fill(
+                cameraX + 1,
+                cameraY + 1,
+                cameraX + 2,
+                cameraY + 2,
+                0xFF3A3A3A
+        );
     }
 
     private void renderTransition(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, PhoneTransition transition) {
@@ -457,11 +495,6 @@ public class PhoneScreen extends Screen {
                 phoneY + PHONE_HEIGHT - PHONE_INNER_PADDING,
                 0xFF000000
         );
-
-        int notchX = phoneX + (PHONE_WIDTH - NOTCH_WIDTH) / 2;
-        int notchY = phoneY + PHONE_INNER_PADDING;
-
-        guiGraphics.fill(notchX, notchY, notchX + NOTCH_WIDTH, notchY + NOTCH_HEIGHT, NOTCH_COLOR);
     }
 
     private void renderHomeIndicator(GuiGraphics guiGraphics, int mouseX, int mouseY) {

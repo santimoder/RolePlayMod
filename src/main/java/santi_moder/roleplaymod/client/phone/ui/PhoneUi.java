@@ -47,7 +47,7 @@ public final class PhoneUi {
                 title,
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + HEADER_TITLE_Y,
-                COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
     }
 
@@ -71,7 +71,7 @@ public final class PhoneUi {
         int x2 = screen.getPhoneX() + screen.getPhoneWidth() - PANEL_MARGIN_X;
         int y2 = screen.getPhoneY() + screen.getPhoneHeight() - PANEL_BOTTOM_OFFSET;
 
-        guiGraphics.fill(x1, y1, x2, y2, COLOR_PANEL);
+        guiGraphics.fill(x1, y1, x2, y2, PhoneThemeColors.card(screen.getPhoneStack()));
     }
 
     public static void drawDarkPanel(PhoneScreen screen, GuiGraphics guiGraphics) {
@@ -80,22 +80,22 @@ public final class PhoneUi {
         int x2 = screen.getPhoneX() + screen.getPhoneWidth() - 8;
         int y2 = screen.getPhoneY() + screen.getPhoneHeight() - 34;
 
-        guiGraphics.fill(x1, y1, x2, y2, COLOR_PANEL_DARK);
+        guiGraphics.fill(x1, y1, x2, y2, PhoneThemeColors.card(screen.getPhoneStack()));
     }
 
     public static void drawField(PhoneScreen screen, GuiGraphics guiGraphics, String label, String value, int x, int y) {
-        guiGraphics.drawString(screen.getPhoneFont(), label, x, y, COLOR_TEXT, false);
-        guiGraphics.drawString(screen.getPhoneFont(), value, x, y + 12, COLOR_SUBTEXT, false);
+        guiGraphics.drawString(screen.getPhoneFont(), label, x, y, PhoneThemeColors.text(screen.getPhoneStack()), false);
+        guiGraphics.drawString(screen.getPhoneFont(), value, x, y + 12, PhoneThemeColors.subtext(screen.getPhoneStack()), false);
     }
 
     public static void drawTextInput(PhoneScreen screen, GuiGraphics guiGraphics, int x1, int y1, int x2, int y2, String value) {
-        guiGraphics.fill(x1, y1, x2, y2, COLOR_INPUT);
+        guiGraphics.fill(x1, y1, x2, y2, PhoneThemeColors.input(screen.getPhoneStack()));
         guiGraphics.drawString(
                 screen.getPhoneFont(),
                 value == null || value.isEmpty() ? "(vacio)" : value,
                 x1 + 4,
                 y1 + 4,
-                COLOR_TEXT,
+                PhoneThemeColors.text(screen.getPhoneStack()),
                 false
         );
     }
@@ -125,8 +125,15 @@ public final class PhoneUi {
     ) {
         boolean hover = screen.isInside(mouseX, mouseY, x, y, w, LIST_BUTTON_H);
 
-        guiGraphics.fill(x, y, x + w, y + LIST_BUTTON_H, hover ? COLOR_BUTTON_HOVER : COLOR_BUTTON);
-        guiGraphics.drawString(screen.getPhoneFont(), label, x + 8, y + 5, COLOR_TEXT, false);
+        guiGraphics.fill(
+                x,
+                y,
+                x + w,
+                y + LIST_BUTTON_H,
+                hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack())
+        );
+
+        guiGraphics.drawString(screen.getPhoneFont(), label, x + 8, y + 5, PhoneThemeColors.text(screen.getPhoneStack()), false);
     }
 
     public static void drawFilledButton(
@@ -139,8 +146,21 @@ public final class PhoneUi {
             boolean hover,
             String label
     ) {
-        guiGraphics.fill(x, y, x + w, y + h, hover ? COLOR_BUTTON_HOVER : COLOR_BUTTON);
-        guiGraphics.drawCenteredString(screen.getPhoneFont(), label, x + w / 2, y + 4, COLOR_TEXT);
+        guiGraphics.fill(
+                x,
+                y,
+                x + w,
+                y + h,
+                hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack())
+        );
+
+        guiGraphics.drawCenteredString(
+                screen.getPhoneFont(),
+                label,
+                x + w / 2,
+                y + 4,
+                PhoneThemeColors.text(screen.getPhoneStack())
+        );
     }
 
     public static void drawCenteredLines(
@@ -152,7 +172,10 @@ public final class PhoneUi {
     ) {
         int y = startY;
         for (int i = 0; i < lines.length; i++) {
-            int color = i == 0 ? COLOR_TEXT : COLOR_SUBTEXT;
+            int color = i == 0
+                    ? PhoneThemeColors.text(screen.getPhoneStack())
+                    : PhoneThemeColors.subtext(screen.getPhoneStack());
+
             guiGraphics.drawCenteredString(screen.getPhoneFont(), lines[i], screen.getPhoneCenterX(), y, color);
             y += lineGap;
         }

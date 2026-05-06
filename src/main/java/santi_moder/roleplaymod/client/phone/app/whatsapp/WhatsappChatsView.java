@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.whatsapp.model.WhatsappChat;
@@ -78,14 +79,6 @@ public final class WhatsappChatsView {
     private static final int COLOR_SWIPE_MORE = 0xFF6D28D9;
     private static final int COLOR_SWIPE_TEXT = 0xFFFFFFFF;
 
-    private static final int COLOR_SHEET_BG = 0xEE111111;
-    private static final int COLOR_SHEET_ROW = 0x22111111;
-    private static final int COLOR_SHEET_ROW_HOVER = 0x44303030;
-    private static final int COLOR_SHEET_DIVIDER = 0x22FFFFFF;
-    private static final int COLOR_SHEET_TEXT = 0xFFFFFFFF;
-    private static final int COLOR_SHEET_DANGER = 0xFFFF8080;
-    private static final int COLOR_SHEET_SUCCESS = 0xFF7CFF9C;
-
     private int scrollOffset = 0;
 
     private String swipedChatId;
@@ -112,12 +105,20 @@ public final class WhatsappChatsView {
         int x = screen.getPhoneX() + LIST_SIDE_PADDING;
         int w = screen.getPhoneWidth() - LIST_SIDE_PADDING * 2;
 
+        guiGraphics.fill(
+                screen.getPhoneX() + 4,
+                screen.getPhoneY() + 4,
+                screen.getPhoneX() + screen.getPhoneWidth() - 4,
+                screen.getPhoneY() + screen.getPhoneHeight() - 4,
+                PhoneThemeColors.appBackground(screen.getPhoneStack())
+        );
+
         guiGraphics.drawString(
                 screen.getPhoneFont(),
                 "Chats",
                 x,
                 screen.getPhoneY() + TITLE_Y,
-                PhoneUi.COLOR_TEXT,
+                PhoneThemeColors.text(screen.getPhoneStack()),
                 false
         );
 
@@ -159,14 +160,14 @@ public final class WhatsappChatsView {
                     rowY,
                     x + currentOffset + w,
                     rowY + ROW_HEIGHT,
-                    hover ? COLOR_ROW_HOVER : COLOR_ROW
+                    hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack())
             );
             guiGraphics.fill(
                     x + currentOffset,
                     rowY + ROW_HEIGHT - 1,
                     x + currentOffset + w,
                     rowY + ROW_HEIGHT,
-                    COLOR_DIVIDER
+                    PhoneThemeColors.divider(screen.getPhoneStack())
             );
 
             renderAvatar(screen, guiGraphics, state, chat, x + 5 + currentOffset, rowY + 5);
@@ -454,7 +455,7 @@ public final class WhatsappChatsView {
             return null;
         }
 
-        List<SheetRow> rows = buildMoreRows(chat, state);
+        List<SheetRow> rows = buildMoreRows(screen, chat, state);
 
         for (SheetRow row : rows) {
             if (screen.isInside(mouseX, mouseY, x, y, w, MORE_SHEET_ROW_H)) {
@@ -537,17 +538,17 @@ public final class WhatsappChatsView {
         int y = screen.getPhoneY() + SEARCH_BAR_TOP_Y;
         int w = screen.getPhoneWidth() - SEARCH_BAR_WIDTH_PADDING;
 
-        guiGraphics.fill(x, y, x + w, y + SEARCH_BAR_HEIGHT, COLOR_SEARCH_BG);
+        guiGraphics.fill(x, y, x + w, y + SEARCH_BAR_HEIGHT, PhoneThemeColors.card(screen.getPhoneStack()));
 
         String renderedText;
         int renderedColor;
 
         if (searchQuery == null || searchQuery.isEmpty()) {
             renderedText = "Buscar chats";
-            renderedColor = COLOR_SEARCH_HINT;
+            renderedColor = PhoneThemeColors.hint(screen.getPhoneStack());
         } else {
             renderedText = "Buscar: " + searchQuery;
-            renderedColor = COLOR_SEARCH_TEXT;
+            renderedColor = PhoneThemeColors.text(screen.getPhoneStack());
         }
 
         guiGraphics.drawString(
@@ -613,20 +614,20 @@ public final class WhatsappChatsView {
                 ? "Contacto bloqueado"
                 : shorten(chat.getLastMessageText(), 18);
 
-        guiGraphics.drawString(screen.getPhoneFont(), name, textX, nameY, COLOR_NAME, false);
+        guiGraphics.drawString(screen.getPhoneFont(), name, textX, nameY, PhoneThemeColors.text(screen.getPhoneStack()), false);
         guiGraphics.drawString(
                 screen.getPhoneFont(),
                 message,
                 textX,
                 messageY,
-                contact != null && contact.blocked() ? COLOR_MESSAGE_BLOCKED : COLOR_MESSAGE,
+                contact != null && contact.blocked() ? COLOR_MESSAGE_BLOCKED : PhoneThemeColors.subtext(screen.getPhoneStack()),
                 false
         );
 
         int timeWidth = screen.getPhoneFont().width(chat.getLastMessageTimeText());
         int timeX = rowX + rowWidth - timeWidth - 6;
 
-        guiGraphics.drawString(screen.getPhoneFont(), chat.getLastMessageTimeText(), timeX, nameY, COLOR_TIME, false);
+        guiGraphics.drawString(screen.getPhoneFont(), chat.getLastMessageTimeText(), timeX, nameY, PhoneThemeColors.hint(screen.getPhoneStack()), false);
 
         if (chat.unreadCount() > 0) {
             renderUnreadBadge(screen, guiGraphics, chat.unreadCount(), rowX + rowWidth - 18, messageY - 1);
@@ -816,36 +817,37 @@ public final class WhatsappChatsView {
         int w = screen.getPhoneWidth() - MORE_SHEET_PADDING * 2;
         int h = getMoreSheetHeight(chat, state);
 
-        guiGraphics.fill(x, y, x + w, y + h, COLOR_SHEET_BG);
+        guiGraphics.fill(x, y, x + w, y + h, PhoneThemeColors.sheet(screen.getPhoneStack()));
 
-        List<SheetRow> rows = buildMoreRows(chat, state);
+        List<SheetRow> rows = buildMoreRows(screen, chat, state);
         int rowY = y;
 
         for (SheetRow row : rows) {
             boolean hover = screen.isInside(mouseX, mouseY, x, rowY, w, MORE_SHEET_ROW_H);
 
-            guiGraphics.fill(x, rowY, x + w, rowY + MORE_SHEET_ROW_H, hover ? COLOR_SHEET_ROW_HOVER : COLOR_SHEET_ROW);
-            guiGraphics.fill(x, rowY + MORE_SHEET_ROW_H - 1, x + w, rowY + MORE_SHEET_ROW_H, COLOR_SHEET_DIVIDER);
+            guiGraphics.fill(x, rowY, x + w, rowY + MORE_SHEET_ROW_H, hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack()));
+            guiGraphics.fill(x, rowY + MORE_SHEET_ROW_H - 1, x + w, rowY + MORE_SHEET_ROW_H, PhoneThemeColors.divider(screen.getPhoneStack()));
 
             guiGraphics.drawString(screen.getPhoneFont(), row.label, x + 6, rowY + 5, row.color, false);
             rowY += MORE_SHEET_ROW_H + MORE_SHEET_ROW_GAP;
         }
     }
 
-    private List<SheetRow> buildMoreRows(WhatsappChat chat, WhatsappState state) {
+    private List<SheetRow> buildMoreRows(PhoneScreen screen, WhatsappChat chat, WhatsappState state) {
         List<SheetRow> rows = new ArrayList<>();
         WhatsappContact contact = state.findContactById(chat.contactId());
 
-        rows.add(new SheetRow("Silenciar", COLOR_SHEET_TEXT, MoreMenuAction.MUTE));
-        rows.add(new SheetRow("Info del contacto", COLOR_SHEET_TEXT, MoreMenuAction.CONTACT_INFO));
-        rows.add(new SheetRow("Vaciar chat", COLOR_SHEET_DANGER, MoreMenuAction.CLEAR_CHAT));
+        rows.add(new SheetRow("Silenciar", PhoneThemeColors.text(screen.getPhoneStack()), MoreMenuAction.MUTE));
+        rows.add(new SheetRow("Info del contacto", PhoneThemeColors.text(screen.getPhoneStack()), MoreMenuAction.CONTACT_INFO));
+        rows.add(new SheetRow("Vaciar chat", PhoneThemeColors.danger(screen.getPhoneStack()), MoreMenuAction.CLEAR_CHAT));
         rows.add(new SheetRow(
                 contact != null && contact.blocked() ? "Desbloquear chat" : "Bloquear chat",
-                contact != null && contact.blocked() ? COLOR_SHEET_SUCCESS : COLOR_SHEET_DANGER,
+                contact != null && contact.blocked()
+                        ? PhoneThemeColors.success(screen.getPhoneStack())
+                        : PhoneThemeColors.danger(screen.getPhoneStack()),
                 MoreMenuAction.TOGGLE_BLOCK
         ));
-        rows.add(new SheetRow("Eliminar chat", COLOR_SHEET_DANGER, MoreMenuAction.DELETE_CHAT));
-
+        rows.add(new SheetRow("Eliminar chat", PhoneThemeColors.danger(screen.getPhoneStack()), MoreMenuAction.DELETE_CHAT));
         return rows;
     }
 

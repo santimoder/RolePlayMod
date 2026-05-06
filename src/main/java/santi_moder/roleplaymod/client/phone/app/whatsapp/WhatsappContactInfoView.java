@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.whatsapp.model.WhatsappChat;
@@ -33,17 +34,17 @@ public final class WhatsappContactInfoView {
     private static final int HEADER_PHONE_GAP = 12;
     private static final int HEADER_BOTTOM_GAP = 12;
 
-    private static final int COLOR_ROW = 0x22111111;
-    private static final int COLOR_ROW_HOVER = 0x44303030;
-    private static final int COLOR_DIVIDER = 0x22FFFFFF;
-    private static final int COLOR_TEXT = 0xFFFFFFFF;
-    private static final int COLOR_SUBTEXT = 0xFFBEBEBE;
-    private static final int COLOR_DANGER = 0xFFFF8080;
-    private static final int COLOR_SUCCESS = 0xFF7CFF9C;
-
     private int scrollOffset = 0;
 
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, WhatsappState state) {
+        guiGraphics.fill(
+                screen.getPhoneX() + 4,
+                screen.getPhoneY() + 4,
+                screen.getPhoneX() + screen.getPhoneWidth() - 4,
+                screen.getPhoneY() + screen.getPhoneHeight() - 4,
+                PhoneThemeColors.appBackground(screen.getPhoneStack())
+        );
+
         WhatsappContact contact = state.getSelectedContact();
         if (contact == null) {
             return;
@@ -56,7 +57,7 @@ public final class WhatsappContactInfoView {
                 "Info",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
-                PhoneUi.COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
 
         int clipX = screen.getPhoneX() + 8;
@@ -173,7 +174,7 @@ public final class WhatsappContactInfoView {
                 contact.displayName(),
                 centerX,
                 nameY,
-                COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
 
         guiGraphics.drawCenteredString(
@@ -181,7 +182,7 @@ public final class WhatsappContactInfoView {
                 contact.phoneNumber().isBlank() ? "Sin número" : contact.phoneNumber(),
                 centerX,
                 phoneY,
-                COLOR_SUBTEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
     }
 
@@ -194,7 +195,7 @@ public final class WhatsappContactInfoView {
                     row.y,
                     row.x + row.w,
                     row.y + ROW_H,
-                    hover ? COLOR_ROW_HOVER : COLOR_ROW
+                    hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack())
             );
 
             guiGraphics.fill(
@@ -202,7 +203,7 @@ public final class WhatsappContactInfoView {
                     row.y + ROW_H - 1,
                     row.x + row.w,
                     row.y + ROW_H,
-                    COLOR_DIVIDER
+                    PhoneThemeColors.divider(screen.getPhoneStack())
             );
 
             guiGraphics.drawString(
@@ -220,7 +221,7 @@ public final class WhatsappContactInfoView {
                         row.subtitle,
                         row.x + row.w - screen.getPhoneFont().width(row.subtitle) - 6,
                         row.y + 5,
-                        COLOR_SUBTEXT,
+                        PhoneThemeColors.text(screen.getPhoneStack()),
                         false
                 );
             }
@@ -235,25 +236,25 @@ public final class WhatsappContactInfoView {
         int w = screen.getPhoneWidth() - SECTION_W_MARGIN;
         int y = startY;
 
-        rows.add(new RowAction(x, y, w, "Llamar", "", COLOR_TEXT, Action.NONE));
+        rows.add(new RowAction(x, y, w, "Llamar", "", PhoneThemeColors.text(screen.getPhoneStack()), Action.NONE));
         y += ROW_H + ROW_GAP;
 
-        rows.add(new RowAction(x, y, w, "Videollamar", "", COLOR_TEXT, Action.NONE));
+        rows.add(new RowAction(x, y, w, "Videollamar", "", PhoneThemeColors.text(screen.getPhoneStack()), Action.NONE));
         y += ROW_H + ROW_GAP;
 
-        rows.add(new RowAction(x, y, w, "Buscar", "", COLOR_TEXT, Action.NONE));
+        rows.add(new RowAction(x, y, w, "Buscar", "", PhoneThemeColors.text(screen.getPhoneStack()), Action.NONE));
         y += ROW_H + ROW_GAP + 4;
 
-        rows.add(new RowAction(x, y, w, "Archivos", String.valueOf(contact.mediaCount()), COLOR_TEXT, Action.NONE));
+        rows.add(new RowAction(x, y, w, "Archivos", String.valueOf(contact.mediaCount()), PhoneThemeColors.text(screen.getPhoneStack()), Action.NONE));
         y += ROW_H + ROW_GAP;
 
-        rows.add(new RowAction(x, y, w, "Grupos en común", String.valueOf(contact.commonGroupsCount()), COLOR_TEXT, Action.NONE));
+        rows.add(new RowAction(x, y, w, "Grupos en común", String.valueOf(contact.commonGroupsCount()), PhoneThemeColors.text(screen.getPhoneStack()), Action.NONE));
         y += ROW_H + ROW_GAP;
 
-        rows.add(new RowAction(x, y, w, "Compartir contacto", "", COLOR_TEXT, Action.NONE));
+        rows.add(new RowAction(x, y, w, "Compartir contacto", "", PhoneThemeColors.text(screen.getPhoneStack()), Action.NONE));
         y += ROW_H + ROW_GAP + 4;
 
-        rows.add(new RowAction(x, y, w, "Vaciar chat", "", COLOR_DANGER, Action.EMPTY_CHAT));
+        rows.add(new RowAction(x, y, w, "Vaciar chat", "", PhoneThemeColors.danger(screen.getPhoneStack()), Action.EMPTY_CHAT));
         y += ROW_H + ROW_GAP;
 
         rows.add(new RowAction(
@@ -262,7 +263,7 @@ public final class WhatsappContactInfoView {
                 w,
                 contact.blocked() ? "Desbloquear usuario" : "Bloquear usuario",
                 "",
-                contact.blocked() ? COLOR_SUCCESS : COLOR_DANGER,
+                contact.blocked() ? PhoneThemeColors.success(screen.getPhoneStack()) : PhoneThemeColors.danger(screen.getPhoneStack()),
                 Action.TOGGLE_BLOCK
         ));
 

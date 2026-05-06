@@ -1,6 +1,7 @@
 package santi_moder.roleplaymod.client.phone.app.whatsapp;
 
 import net.minecraft.client.gui.GuiGraphics;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 
@@ -27,12 +28,6 @@ public final class WhatsappNewContactView {
     private static final int SAVE_BUTTON_W = 90;
     private static final int SAVE_BUTTON_H = 16;
 
-    private static final int COLOR_FIELD = 0xCC1A1A1A;
-    private static final int COLOR_FIELD_ACTIVE = 0xFF263238;
-    private static final int COLOR_LABEL = 0xFFBEBEBE;
-    private static final int COLOR_TEXT = 0xFFFFFFFF;
-    private static final int COLOR_HINT = 0xFF8F8F8F;
-    private static final int COLOR_PREFIX = 0xFFBEBEBE;
     private static final int COLOR_BUTTON = 0xFF25D366;
     private static final int COLOR_BUTTON_HOVER = 0xFF53E07E;
     private static final int COLOR_BUTTON_DISABLED = 0xFF2C4F3A;
@@ -45,6 +40,14 @@ public final class WhatsappNewContactView {
     private Field activeField = Field.NONE;
 
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, WhatsappState state) {
+        guiGraphics.fill(
+                screen.getPhoneX() + 4,
+                screen.getPhoneY() + 4,
+                screen.getPhoneX() + screen.getPhoneWidth() - 4,
+                screen.getPhoneY() + screen.getPhoneHeight() - 4,
+                PhoneThemeColors.appBackground(screen.getPhoneStack())
+        );
+
         PhoneUi.drawBackButton(screen, guiGraphics, mouseX, mouseY);
 
         guiGraphics.drawCenteredString(
@@ -52,7 +55,7 @@ public final class WhatsappNewContactView {
                 "Nuevo contacto",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
-                PhoneUi.COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
 
         renderField(
@@ -82,7 +85,7 @@ public final class WhatsappNewContactView {
                 "Teléfono (Uruguay)",
                 screen.getPhoneX() + LABEL_X,
                 screen.getPhoneY() + PHONE_LABEL_Y,
-                COLOR_LABEL,
+                PhoneThemeColors.subtext(screen.getPhoneStack()),
                 false
         );
 
@@ -91,7 +94,7 @@ public final class WhatsappNewContactView {
                 "Móvil +598",
                 screen.getPhoneX() + LABEL_X,
                 screen.getPhoneY() + PHONE_PREFIX_Y,
-                COLOR_PREFIX,
+                PhoneThemeColors.subtext(screen.getPhoneStack()),
                 false
         );
 
@@ -248,7 +251,7 @@ public final class WhatsappNewContactView {
                 label,
                 screen.getPhoneX() + LABEL_X,
                 labelY,
-                COLOR_LABEL,
+                PhoneThemeColors.subtext(screen.getPhoneStack()),
                 false
         );
 
@@ -260,7 +263,7 @@ public final class WhatsappNewContactView {
                 fieldY,
                 x + w,
                 fieldY + FIELD_H,
-                active ? COLOR_FIELD_ACTIVE : COLOR_FIELD
+                active ? PhoneThemeColors.inputActive(screen.getPhoneStack()) : PhoneThemeColors.input(screen.getPhoneStack())
         );
 
         boolean empty = value == null || value.isEmpty();
@@ -269,7 +272,7 @@ public final class WhatsappNewContactView {
                 empty ? placeholder : value,
                 x + 5,
                 fieldY + 4,
-                empty ? COLOR_HINT : COLOR_TEXT,
+                empty ? PhoneThemeColors.hint(screen.getPhoneStack()) : PhoneThemeColors.text(screen.getPhoneStack()),
                 false
         );
     }
@@ -283,7 +286,7 @@ public final class WhatsappNewContactView {
                 screen.getPhoneY() + PHONE_FIELD_Y,
                 x + w,
                 screen.getPhoneY() + PHONE_FIELD_Y + FIELD_H,
-                active ? COLOR_FIELD_ACTIVE : COLOR_FIELD
+                active ? PhoneThemeColors.inputActive(screen.getPhoneStack()) : PhoneThemeColors.input(screen.getPhoneStack())
         );
 
         boolean empty = value == null || value.isEmpty();
@@ -292,7 +295,7 @@ public final class WhatsappNewContactView {
                 empty ? "Teléfono" : value,
                 x + 5,
                 screen.getPhoneY() + PHONE_FIELD_Y + 4,
-                empty ? COLOR_HINT : COLOR_TEXT,
+                empty ? PhoneThemeColors.hint(screen.getPhoneStack()) : PhoneThemeColors.text(screen.getPhoneStack()),
                 false
         );
     }
