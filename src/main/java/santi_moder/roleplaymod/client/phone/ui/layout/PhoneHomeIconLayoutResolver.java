@@ -64,7 +64,7 @@ public final class PhoneHomeIconLayoutResolver {
     private static Map<PhoneAppId, PhoneTransitionContext> buildLayout(PhoneScreen screen, int iconSize) {
         Map<PhoneAppId, PhoneTransitionContext> map = new HashMap<>();
 
-        int gridStartX = screen.getPhoneX() + GRID_LEFT_OFFSET;
+        int gridStartX = getGridStartX(screen, iconSize);
         int gridStartY = screen.getPhoneY() + GRID_TOP_OFFSET;
 
         for (int i = 0; i < GRID_APPS.length; i++) {
@@ -77,7 +77,7 @@ public final class PhoneHomeIconLayoutResolver {
             map.put(GRID_APPS[i], new PhoneTransitionContext(x, y, iconSize, iconSize));
         }
 
-        int dockStartX = screen.getPhoneX() + GRID_LEFT_OFFSET + DOCK_ICON_OFFSET_X;
+        int dockStartX = getDockStartX(screen, iconSize);
         int dockY = screen.getPhoneY() + screen.getPhoneHeight() - 42;
 
         for (int i = 0; i < DOCK_APPS.length; i++) {
@@ -86,6 +86,17 @@ public final class PhoneHomeIconLayoutResolver {
         }
 
         return map;
+    }
+
+    private static int getGridStartX(PhoneScreen screen, int iconSize) {
+        int totalWidth = GRID_COLUMNS * iconSize + (GRID_COLUMNS - 1) * GRID_SPACING_X;
+        return screen.getPhoneX() + (screen.getPhoneWidth() - totalWidth) / 2;
+    }
+
+    private static int getDockStartX(PhoneScreen screen, int iconSize) {
+        int dockCount = DOCK_APPS.length;
+        int totalWidth = dockCount * iconSize + Math.max(0, dockCount - 1) * DOCK_ICON_GAP;
+        return screen.getPhoneX() + (screen.getPhoneWidth() - totalWidth) / 2;
     }
 
     private static int resolveIconSize(PhoneScreen screen) {

@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
@@ -21,8 +22,6 @@ public final class WhatsappContactInfoView {
     private static final int SCROLL_STEP = 12;
 
     private static final int AVATAR_RADIUS = 26;
-    private static final int AVATAR_COLOR = 0xFF25D366;
-    private static final int AVATAR_TEXT_COLOR = 0xFF081C15;
 
     private static final int SECTION_X = 12;
     private static final int SECTION_W_MARGIN = 24;
@@ -52,8 +51,9 @@ public final class WhatsappContactInfoView {
 
         PhoneUi.drawBackButton(screen, guiGraphics, mouseX, mouseY);
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 "Info",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
@@ -150,35 +150,29 @@ public final class WhatsappContactInfoView {
         int centerX = screen.getPhoneCenterX();
         int avatarCenterY = topY + HEADER_AVATAR_TOP + AVATAR_RADIUS;
 
-        guiGraphics.fill(
+        WhatsappTextureResolver.drawProfilePhoto(
+                guiGraphics,
+                contact.photoId(),
                 centerX - AVATAR_RADIUS,
                 avatarCenterY - AVATAR_RADIUS,
-                centerX + AVATAR_RADIUS,
-                avatarCenterY + AVATAR_RADIUS,
-                AVATAR_COLOR
-        );
-
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
-                contact.getInitials(),
-                centerX,
-                avatarCenterY - 4,
-                AVATAR_TEXT_COLOR
+                AVATAR_RADIUS * 2
         );
 
         int nameY = avatarCenterY + AVATAR_RADIUS + HEADER_NAME_GAP;
         int phoneY = nameY + HEADER_PHONE_GAP;
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 contact.displayName(),
                 centerX,
                 nameY,
                 PhoneThemeColors.text(screen.getPhoneStack())
         );
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 contact.phoneNumber().isBlank() ? "Sin número" : contact.phoneNumber(),
                 centerX,
                 phoneY,

@@ -467,6 +467,25 @@ public class ModNetwork {
                 WhatsappChatDeletedS2CPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT)
         );
+
+        WHATSAPP_CHANNEL.registerMessage(
+                nextWhatsappId(),
+                WhatsappUpdateProfileC2SPacket.class,
+                WhatsappUpdateProfileC2SPacket::encode,
+                WhatsappUpdateProfileC2SPacket::decode,
+                WhatsappUpdateProfileC2SPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_SERVER)
+        );
+
+        WHATSAPP_CHANNEL.registerMessage(
+                nextWhatsappId(),
+                WhatsappProfileUpdatedS2CPacket.class,
+                WhatsappProfileUpdatedS2CPacket::encode,
+                WhatsappProfileUpdatedS2CPacket::decode,
+                WhatsappProfileUpdatedS2CPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT)
+        );
+
     }
 
     public static <MSG> void sendInventoryToServer(MSG msg) {

@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
@@ -50,28 +51,7 @@ public final class WhatsappChatsView {
     private static final int MORE_SHEET_ROW_H = 18;
     private static final int MORE_SHEET_ROW_GAP = 2;
     private static final int MORE_SHEET_BOTTOM_MARGIN = 34;
-
-    private static final int COLOR_ADD_BUTTON = 0xFF25D366;
-    private static final int COLOR_ADD_BUTTON_TEXT = 0xFF081C15;
-    private static final int COLOR_ADD_BUTTON_HOVER = 0xFF53E07E;
-
-    private static final int COLOR_SEARCH_BG = 0xCC1A1A1A;
-    private static final int COLOR_SEARCH_HINT = 0xFF8F8F8F;
-    private static final int COLOR_SEARCH_TEXT = 0xFFFFFFFF;
-
-    private static final int COLOR_ROW = 0x22111111;
-    private static final int COLOR_ROW_HOVER = 0x44303030;
-    private static final int COLOR_DIVIDER = 0x22FFFFFF;
-    private static final int COLOR_AVATAR = 0xFF25D366;
-    private static final int COLOR_AVATAR_TEXT = 0xFF081C15;
-    private static final int COLOR_NAME = 0xFFFFFFFF;
-    private static final int COLOR_MESSAGE = 0xFFBEBEBE;
     private static final int COLOR_MESSAGE_BLOCKED = 0xFF7A7A7A;
-    private static final int COLOR_TIME = 0xFF9A9A9A;
-    private static final int COLOR_BADGE = 0xFF25D366;
-    private static final int COLOR_BADGE_TEXT = 0xFF081C15;
-    private static final int COLOR_EMPTY_TEXT = 0xFFBEBEBE;
-    private static final int COLOR_EMPTY_SUBTEXT = 0xFF8F8F8F;
 
     private static final int COLOR_SWIPE_PIN = 0xFF25D366;
     private static final int COLOR_SWIPE_READ = 0xFF3B82F6;
@@ -517,15 +497,16 @@ public final class WhatsappChatsView {
                 y,
                 x + ADD_BUTTON_SIZE,
                 y + ADD_BUTTON_SIZE,
-                hover ? COLOR_ADD_BUTTON_HOVER : COLOR_ADD_BUTTON
+                hover ? PhoneThemeColors.successHover(screen.getPhoneStack()) : PhoneThemeColors.success(screen.getPhoneStack())
         );
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 "+",
                 x + ADD_BUTTON_SIZE / 2,
                 y + 3,
-                COLOR_ADD_BUTTON_TEXT
+                PhoneThemeColors.onSuccess(screen.getPhoneStack())
         );
     }
 
@@ -579,18 +560,23 @@ public final class WhatsappChatsView {
                 ? "Todavía no tenés conversaciones"
                 : "No se encontraron chats";
 
-        guiGraphics.drawCenteredString(screen.getPhoneFont(), title, centerX, centerY, COLOR_EMPTY_TEXT);
-        guiGraphics.drawCenteredString(screen.getPhoneFont(), subtitle, centerX, centerY + 12, COLOR_EMPTY_SUBTEXT);
+        PhoneUi.drawCenteredText(screen, guiGraphics, title, centerX, centerY, PhoneThemeColors.text(screen.getPhoneStack()));
+        PhoneUi.drawCenteredText(screen, guiGraphics, subtitle, centerX, centerY + 12, PhoneThemeColors.subtext(screen.getPhoneStack()));
     }
 
     private void renderAvatar(PhoneScreen screen, GuiGraphics guiGraphics, WhatsappState state, WhatsappChat chat, int x, int y) {
-        guiGraphics.fill(x, y, x + AVATAR_SIZE, y + AVATAR_SIZE, COLOR_AVATAR);
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
-                state.getChatInitials(chat),
-                x + AVATAR_SIZE / 2,
-                y + 5,
-                COLOR_AVATAR_TEXT
+        WhatsappContact contact = state.findContactById(chat.contactId());
+
+        if (contact == null) {
+            return;
+        }
+
+        WhatsappTextureResolver.drawProfilePhoto(
+                guiGraphics,
+                contact.photoId(),
+                x,
+                y,
+                AVATAR_SIZE
         );
     }
 
@@ -638,8 +624,8 @@ public final class WhatsappChatsView {
         String text = unreadCount > 9 ? "9+" : String.valueOf(unreadCount);
         int width = Math.max(10, screen.getPhoneFont().width(text) + 6);
 
-        guiGraphics.fill(x - width, y, x, y + 10, COLOR_BADGE);
-        guiGraphics.drawCenteredString(screen.getPhoneFont(), text, x - width / 2, y + 1, COLOR_BADGE_TEXT);
+        guiGraphics.fill(x - width, y, x, y + 10, PhoneThemeColors.success(screen.getPhoneStack()));
+        PhoneUi.drawCenteredText(screen, guiGraphics, text, x - width / 2, y + 1, PhoneThemeColors.onSuccess(screen.getPhoneStack()));
     }
 
     private void renderSwipeBackground(

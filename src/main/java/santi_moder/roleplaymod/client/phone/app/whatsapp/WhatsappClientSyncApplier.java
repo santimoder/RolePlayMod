@@ -17,6 +17,7 @@ public final class WhatsappClientSyncApplier {
     private static final List<WhatsappChatPayload> pendingOpenedChatPayloads = new ArrayList<>();
     private static final List<String> pendingDeletedChatIds = new ArrayList<>();
     private static WhatsappInitialStateSnapshot pendingInitialSnapshot;
+    private static WhatsappSyncProfile pendingProfile;
 
     private WhatsappClientSyncApplier() {
     }
@@ -41,6 +42,29 @@ public final class WhatsappClientSyncApplier {
         List<WhatsappChatPayload> copy = new ArrayList<>(pendingChatPayloads);
         pendingChatPayloads.clear();
         return copy;
+    }
+
+    public static void setPendingProfile(WhatsappSyncProfile profile) {
+        pendingProfile = profile;
+    }
+
+    public static WhatsappSyncProfile consumePendingProfile() {
+        WhatsappSyncProfile profile = pendingProfile;
+        pendingProfile = null;
+        return profile;
+    }
+
+    public static void applyProfileToState(WhatsappState state, WhatsappSyncProfile profile) {
+        if (state == null || profile == null) {
+            return;
+        }
+
+        state.setProfile(new WhatsappProfile(
+                profile.photoId(),
+                profile.about(),
+                profile.displayName(),
+                profile.phoneNumber()
+        ));
     }
 
     public static void applyMessageStatusPayload(WhatsappMessageStatusPayload payload) {

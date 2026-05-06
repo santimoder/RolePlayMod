@@ -63,4 +63,54 @@ public final class PhoneThemeColors {
     public static int success(ItemStack stack) {
         return isDark(stack) ? 0xFF7CFF9C : 0xFF25D366;
     }
+
+    public static int onSuccess(ItemStack stack) {
+        return isDark(stack) ? 0xFF062E14 : 0xFF081C15;
+    }
+
+    public static int successHover(ItemStack stack) {
+        return isDark(stack) ? 0xFF4ADE80 : 0xFF53E07E;
+    }
+
+    public static int disabledInput(ItemStack stack) {
+        return isDark(stack) ? 0xFF202020 : 0xFFE6E6E6;
+    }
+
+    public static int whatsappHeader(ItemStack stack) {
+        return isDark(stack) ? 0xCC111111 : 0xEEFFFFFF;
+    }
+
+    public static int whatsappHeaderIcon(ItemStack stack) {
+        return isDark(stack) ? 0xFFFFFFFF : 0xFF111111;
+    }
+
+    public static int whatsappBubbleSent(ItemStack stack) {
+        return isDark(stack) ? 0xFF005C4B : 0xFFDCF8C6;
+    }
+
+    public static int whatsappBubbleReceived(ItemStack stack) {
+        return isDark(stack) ? 0xFF202C33 : 0xFFFFFFFF;
+    }
+
+    public static int whatsappMessageTextSent(ItemStack stack) {
+        return isDark(stack) ? 0xFFFFFFFF : 0xFF111111;
+    }
+
+    public static int whatsappMessageTextReceived(ItemStack stack) {
+        return isDark(stack) ? 0xFFFFFFFF : 0xFF111111;
+    }
+
+    public static int whatsappMetaSent(ItemStack stack) {
+        return isDark(stack) ? 0xFFB7D7CB : 0xFF5F6F5F;
+    }
+
+    public static int whatsappMetaReceived(ItemStack stack) {
+        return isDark(stack) ? 0xFFB8C8CC : 0xFF777777;
+    }
+
+    public static int whatsappActionButton(ItemStack stack) {
+        return isDark(stack) ? 0xFF2A3942 : 0xFFEDEDED;
+    }
+
+
 }

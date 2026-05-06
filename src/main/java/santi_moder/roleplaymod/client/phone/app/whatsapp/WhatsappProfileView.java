@@ -5,20 +5,18 @@ import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 import santi_moder.roleplaymod.common.whatsapp.model.WhatsappProfile;
+import santi_moder.roleplaymod.network.ModNetwork;
+import santi_moder.roleplaymod.network.phone.whatsapp.WhatsappUpdateProfileC2SPacket;
 
 public final class WhatsappProfileView {
 
     private static final int TITLE_Y = 30;
 
-    private static final int PHOTO_CENTER_Y = 58;
+    private static final int PHOTO_CENTER_Y = 76;
     private static final int PHOTO_RADIUS = 22;
-    private static final int PHOTO_COLOR = 0xFF25D366;
-    private static final int PHOTO_TEXT_COLOR = 0xFF081C15;
+    private static final int EDIT_LABEL_Y = 102;
 
-    private static final int EDIT_LABEL_Y = 84;
-    private static final int EDIT_LABEL_COLOR = 0xFF53BDEB;
-
-    private static final int SECTION_START_Y = 104;
+    private static final int SECTION_START_Y = 122;
     private static final int SECTION_GAP = 34;
 
     private static final int FIELD_LABEL_X = 16;
@@ -29,22 +27,15 @@ public final class WhatsappProfileView {
     private static final int FIELD_TEXT_PADDING_Y = 4;
 
     private static final int SHEET_SIDE_MARGIN = 8;
-    private static final int SHEET_BOTTOM_OFFSET = 8;
+    private static final int SHEET_BOTTOM_OFFSET = 34;
     private static final int SHEET_OPTION_HEIGHT = 18;
     private static final int SHEET_TOP_PADDING = 8;
     private static final int SHEET_BOTTOM_PADDING = 8;
     private static final int SHEET_HANDLE_WIDTH = 26;
     private static final int SHEET_HANDLE_HEIGHT = 3;
 
-    private static final int COLOR_SHEET_HANDLE = 0x66FFFFFF;
-    private static final int COLOR_SHEET_OPTION = 0x00000000;
-    private static final int COLOR_SHEET_OPTION_HOVER = 0x2233FF99;
-    private static final int COLOR_SHEET_SEPARATOR = 0x22FFFFFF;
-    private static final int COLOR_OVERLAY = 0x66000000;
-
-    private static final int MAX_ABOUT_LENGTH = 80;
-    private static final int MAX_NAME_LENGTH = 28;
-    private static final int MAX_PHONE_LENGTH = 20;
+    private static final int MAX_ABOUT_LENGTH = 20;
+    private static final int MAX_NAME_LENGTH = 30;
 
     private Field activeField = Field.NONE;
     private boolean photoSheetOpen = false;
@@ -57,12 +48,12 @@ public final class WhatsappProfileView {
                 screen.getPhoneY() + screen.getPhoneHeight() - 4,
                 PhoneThemeColors.appBackground(screen.getPhoneStack())
         );
+
         WhatsappProfile profile = state.getProfile();
 
-        PhoneUi.drawBackButton(screen, guiGraphics, mouseX, mouseY);
-
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 "Perfil",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
@@ -81,10 +72,6 @@ public final class WhatsappProfileView {
 
     public boolean mouseClicked(PhoneScreen screen, double mouseX, double mouseY, int button, WhatsappState state) {
         if (button != 0) {
-            return false;
-        }
-
-        if (PhoneUi.isBackButtonClicked(screen, mouseX, mouseY) && !photoSheetOpen) {
             return false;
         }
 
@@ -133,9 +120,9 @@ public final class WhatsappProfileView {
             return true;
         }
 
-        if (isInsidePhoneField(screen, mouseX, mouseY)) {
-            activeField = Field.PHONE;
-            return true;
+
+        if (activeField != Field.NONE) {
+            saveProfileToServer(profile);
         }
 
         activeField = Field.NONE;
@@ -156,19 +143,19 @@ public final class WhatsappProfileView {
         return switch (activeField) {
             case ABOUT -> appendAbout(profile, codePoint);
             case NAME -> appendName(profile, codePoint);
-            case PHONE -> appendPhone(profile, codePoint);
             case NONE -> false;
         };
     }
 
     public boolean keyPressed(int keyCode, WhatsappState state) {
-        if (keyCode == 256) { // ESC
+        if (keyCode == 256) {
             if (photoSheetOpen) {
                 photoSheetOpen = false;
                 return true;
             }
 
             if (activeField != Field.NONE) {
+                saveProfileToServer(state.getProfile());
                 activeField = Field.NONE;
                 return true;
             }
@@ -176,15 +163,17 @@ public final class WhatsappProfileView {
             return false;
         }
 
-        if (keyCode == 257 || keyCode == 335) { // ENTER
+        if (keyCode == 257 || keyCode == 335) {
             if (activeField != Field.NONE) {
+                saveProfileToServer(state.getProfile());
+
                 activeField = Field.NONE;
                 return true;
             }
             return false;
         }
 
-        if (keyCode != 259 || photoSheetOpen) { // BACKSPACE
+        if (keyCode != 259 || photoSheetOpen) {
             return false;
         }
 
@@ -193,7 +182,6 @@ public final class WhatsappProfileView {
         return switch (activeField) {
             case ABOUT -> backspaceAbout(profile);
             case NAME -> backspaceName(profile);
-            case PHONE -> backspacePhone(profile);
             case NONE -> false;
         };
     }
@@ -211,21 +199,12 @@ public final class WhatsappProfileView {
         int centerX = screen.getPhoneCenterX();
         int centerY = screen.getPhoneY() + PHOTO_CENTER_Y;
 
-        guiGraphics.fill(
+        WhatsappTextureResolver.drawProfilePhoto(
+                guiGraphics,
+                profile.photoId(),
                 centerX - PHOTO_RADIUS,
                 centerY - PHOTO_RADIUS,
-                centerX + PHOTO_RADIUS,
-                centerY + PHOTO_RADIUS,
-                PHOTO_COLOR
-        );
-
-        String initials = resolveInitials(profile.displayName());
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
-                initials,
-                centerX,
-                centerY - 4,
-                PHOTO_TEXT_COLOR
+                PHOTO_RADIUS * 2
         );
     }
 
@@ -235,7 +214,9 @@ public final class WhatsappProfileView {
         int x = screen.getPhoneCenterX() - width / 2;
         int y = screen.getPhoneY() + EDIT_LABEL_Y;
 
-        int color = isInsideEditLabel(screen, mouseX, mouseY) ? 0xFF7DD3FC : EDIT_LABEL_COLOR;
+        int color = isInsideEditLabel(screen, mouseX, mouseY)
+                ? PhoneThemeColors.successHover(screen.getPhoneStack())
+                : PhoneThemeColors.success(screen.getPhoneStack());
 
         guiGraphics.drawString(
                 screen.getPhoneFont(),
@@ -278,18 +259,17 @@ public final class WhatsappProfileView {
                 activeField == Field.NAME
         );
 
-        renderField(
+        renderReadonlyField(
                 screen,
                 guiGraphics,
                 "Número de teléfono",
                 profile.phoneNumber(),
-                "Escribí tu número",
+                "Sin número",
                 screen.getPhoneX() + FIELD_LABEL_X,
                 screen.getPhoneY() + SECTION_START_Y + SECTION_GAP * 2,
                 screen.getPhoneX() + FIELD_BOX_X,
                 screen.getPhoneY() + SECTION_START_Y + SECTION_GAP * 2 + 10,
-                width,
-                activeField == Field.PHONE
+                width
         );
     }
 
@@ -324,14 +304,78 @@ public final class WhatsappProfileView {
         );
 
         boolean empty = value == null || value.isEmpty();
+
         guiGraphics.drawString(
                 screen.getPhoneFont(),
-                empty ? placeholder : value,
+                shortenToFit(screen, empty ? placeholder : value, boxWidth - FIELD_TEXT_PADDING_X * 2),
                 boxX + FIELD_TEXT_PADDING_X,
                 boxY + FIELD_TEXT_PADDING_Y,
                 empty ? PhoneThemeColors.hint(screen.getPhoneStack()) : PhoneThemeColors.text(screen.getPhoneStack()),
                 false
         );
+    }
+
+    private void renderReadonlyField(
+            PhoneScreen screen,
+            GuiGraphics guiGraphics,
+            String label,
+            String value,
+            String placeholder,
+            int labelX,
+            int labelY,
+            int boxX,
+            int boxY,
+            int boxWidth
+    ) {
+        guiGraphics.drawString(
+                screen.getPhoneFont(),
+                label,
+                labelX,
+                labelY,
+                PhoneThemeColors.subtext(screen.getPhoneStack()),
+                false
+        );
+
+        guiGraphics.fill(
+                boxX,
+                boxY,
+                boxX + boxWidth,
+                boxY + FIELD_BOX_HEIGHT,
+                PhoneThemeColors.disabledInput(screen.getPhoneStack())
+        );
+
+        boolean empty = value == null || value.isEmpty();
+
+        guiGraphics.drawString(
+                screen.getPhoneFont(),
+                shortenToFit(screen, empty ? placeholder : value, boxWidth - FIELD_TEXT_PADDING_X * 2),
+                boxX + FIELD_TEXT_PADDING_X,
+                boxY + FIELD_TEXT_PADDING_Y,
+                empty
+                        ? PhoneThemeColors.hint(screen.getPhoneStack())
+                        : PhoneThemeColors.subtext(screen.getPhoneStack()),
+                false
+        );
+    }
+
+    private String shortenToFit(PhoneScreen screen, String value, int maxWidth) {
+        if (value == null || value.isEmpty()) {
+            return "";
+        }
+
+        if (screen.getPhoneFont().width(value) <= maxWidth) {
+            return value;
+        }
+
+        String ellipsis = "…";
+        String shortened = value;
+
+        while (!shortened.isEmpty()
+                && screen.getPhoneFont().width(shortened + ellipsis) > maxWidth) {
+            shortened = shortened.substring(0, shortened.length() - 1);
+        }
+
+        return shortened + ellipsis;
     }
 
     private void renderPhotoSheetOverlay(PhoneScreen screen, GuiGraphics guiGraphics) {
@@ -340,7 +384,7 @@ public final class WhatsappProfileView {
                 screen.getPhoneY() + 4,
                 screen.getPhoneX() + screen.getPhoneWidth() - 4,
                 screen.getPhoneY() + screen.getPhoneHeight() - 4,
-                COLOR_OVERLAY
+                PhoneThemeColors.overlay()
         );
     }
 
@@ -354,7 +398,14 @@ public final class WhatsappProfileView {
 
         int handleX = x + (w - SHEET_HANDLE_WIDTH) / 2;
         int handleY = y + 4;
-        guiGraphics.fill(handleX, handleY, handleX + SHEET_HANDLE_WIDTH, handleY + SHEET_HANDLE_HEIGHT, COLOR_SHEET_HANDLE);
+
+        guiGraphics.fill(
+                handleX,
+                handleY,
+                handleX + SHEET_HANDLE_WIDTH,
+                handleY + SHEET_HANDLE_HEIGHT,
+                PhoneThemeColors.divider(screen.getPhoneStack())
+        );
 
         renderSheetOption(
                 screen,
@@ -369,7 +420,13 @@ public final class WhatsappProfileView {
                 isInsideTakePhoto(screen, mouseX, mouseY)
         );
 
-        renderSheetSeparator(guiGraphics, x, y + SHEET_TOP_PADDING + 8 + SHEET_OPTION_HEIGHT, w);
+        renderSheetSeparator(
+                screen,
+                guiGraphics,
+                x,
+                y + SHEET_TOP_PADDING + 8 + SHEET_OPTION_HEIGHT,
+                w
+        );
 
         renderSheetOption(
                 screen,
@@ -384,9 +441,16 @@ public final class WhatsappProfileView {
                 isInsideSelectPhoto(screen, mouseX, mouseY)
         );
 
-        renderSheetSeparator(guiGraphics, x, y + SHEET_TOP_PADDING + 8 + SHEET_OPTION_HEIGHT * 2, w);
+        renderSheetSeparator(
+                screen,
+                guiGraphics,
+                x,
+                y + SHEET_TOP_PADDING + 8 + SHEET_OPTION_HEIGHT * 2,
+                w
+        );
 
         boolean canDelete = hasCustomPhoto(profile);
+
         renderSheetOption(
                 screen,
                 guiGraphics,
@@ -414,13 +478,26 @@ public final class WhatsappProfileView {
             boolean hover
     ) {
         if (hover && enabled) {
-            guiGraphics.fill(x, y, x + w, y + SHEET_OPTION_HEIGHT, COLOR_SHEET_OPTION_HOVER);
+            guiGraphics.fill(
+                    x,
+                    y,
+                    x + w,
+                    y + SHEET_OPTION_HEIGHT,
+                    PhoneThemeColors.cardHover(screen.getPhoneStack())
+            );
         } else {
-            guiGraphics.fill(x, y, x + w, y + SHEET_OPTION_HEIGHT, COLOR_SHEET_OPTION);
+            guiGraphics.fill(
+                    x,
+                    y,
+                    x + w,
+                    y + SHEET_OPTION_HEIGHT,
+                    0x00000000
+            );
         }
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 label,
                 x + w / 2,
                 y + 5,
@@ -428,12 +505,19 @@ public final class WhatsappProfileView {
         );
     }
 
-    private void renderSheetSeparator(GuiGraphics guiGraphics, int x, int y, int w) {
-        guiGraphics.fill(x + 8, y, x + w - 8, y + 1, COLOR_SHEET_SEPARATOR);
+    private void renderSheetSeparator(PhoneScreen screen, GuiGraphics guiGraphics, int x, int y, int w) {
+        guiGraphics.fill(
+                x + 8,
+                y,
+                x + w - 8,
+                y + 1,
+                PhoneThemeColors.divider(screen.getPhoneStack())
+        );
     }
 
     private boolean appendAbout(WhatsappProfile profile, char codePoint) {
         String current = profile.about();
+
         if (current.length() >= MAX_ABOUT_LENGTH) {
             return true;
         }
@@ -444,6 +528,7 @@ public final class WhatsappProfileView {
 
     private boolean appendName(WhatsappProfile profile, char codePoint) {
         String current = profile.displayName();
+
         if (current.length() >= MAX_NAME_LENGTH) {
             return true;
         }
@@ -452,22 +537,9 @@ public final class WhatsappProfileView {
         return true;
     }
 
-    private boolean appendPhone(WhatsappProfile profile, char codePoint) {
-        if (!Character.isDigit(codePoint) && codePoint != '+' && codePoint != ' ' && codePoint != '-') {
-            return true;
-        }
-
-        String current = profile.phoneNumber();
-        if (current.length() >= MAX_PHONE_LENGTH) {
-            return true;
-        }
-
-        profile.setPhoneNumber(current + codePoint);
-        return true;
-    }
-
     private boolean backspaceAbout(WhatsappProfile profile) {
         String current = profile.about();
+
         if (current.isEmpty()) {
             return true;
         }
@@ -478,6 +550,7 @@ public final class WhatsappProfileView {
 
     private boolean backspaceName(WhatsappProfile profile) {
         String current = profile.displayName();
+
         if (current.isEmpty()) {
             return true;
         }
@@ -486,15 +559,6 @@ public final class WhatsappProfileView {
         return true;
     }
 
-    private boolean backspacePhone(WhatsappProfile profile) {
-        String current = profile.phoneNumber();
-        if (current.isEmpty()) {
-            return true;
-        }
-
-        profile.setPhoneNumber(current.substring(0, current.length() - 1));
-        return true;
-    }
 
     private String resolveInitials(String name) {
         if (name == null || name.isBlank()) {
@@ -502,8 +566,10 @@ public final class WhatsappProfileView {
         }
 
         String[] parts = name.trim().split("\\s+");
+
         if (parts.length == 1) {
             String part = parts[0];
+
             return part.length() >= 2
                     ? part.substring(0, 2).toUpperCase()
                     : part.substring(0, 1).toUpperCase();
@@ -511,14 +577,28 @@ public final class WhatsappProfileView {
 
         String first = parts[0].isEmpty() ? "" : parts[0].substring(0, 1);
         String second = parts[1].isEmpty() ? "" : parts[1].substring(0, 1);
+
         return (first + second).toUpperCase();
+    }
+
+    private void saveProfileToServer(WhatsappProfile profile) {
+        if (profile == null) {
+            return;
+        }
+
+        ModNetwork.sendWhatsappToServer(
+                new WhatsappUpdateProfileC2SPacket(
+                        profile.displayName(),
+                        profile.about()
+                )
+        );
     }
 
     private boolean hasCustomPhoto(WhatsappProfile profile) {
         return profile != null
                 && profile.photoId() != null
                 && !profile.photoId().isBlank()
-                && !WhatsappProfile.DEFAULT_PHOTO.equals(profile.photoId());
+                && !WhatsappProfile.isDefaultPhoto(profile.photoId());
     }
 
     private int getSheetX(PhoneScreen screen) {
@@ -566,10 +646,6 @@ public final class WhatsappProfileView {
 
     private boolean isInsideNameField(PhoneScreen screen, double mouseX, double mouseY) {
         return isInsideField(screen, mouseX, mouseY, screen.getPhoneY() + SECTION_START_Y + SECTION_GAP + 10);
-    }
-
-    private boolean isInsidePhoneField(PhoneScreen screen, double mouseX, double mouseY) {
-        return isInsideField(screen, mouseX, mouseY, screen.getPhoneY() + SECTION_START_Y + SECTION_GAP * 2 + 10);
     }
 
     private boolean isInsideField(PhoneScreen screen, double mouseX, double mouseY, int y) {
@@ -621,7 +697,6 @@ public final class WhatsappProfileView {
     private enum Field {
         NONE,
         ABOUT,
-        NAME,
-        PHONE
+        NAME
     }
 }

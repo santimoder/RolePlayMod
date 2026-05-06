@@ -37,6 +37,7 @@ public class PhoneAppRegistry {
         registerPlaceholder(PhoneAppId.WHATSAPP);
         registerPlaceholder(PhoneAppId.PHOTOS);
         registerPlaceholder(PhoneAppId.MAPS);
+        registerPlaceholder(PhoneAppId.SAFARI);
         registerPlaceholder(PhoneAppId.INSTAGRAM);
         registerPlaceholder(PhoneAppId.TWITTER);
         registerPlaceholder(PhoneAppId.SPOTIFY);

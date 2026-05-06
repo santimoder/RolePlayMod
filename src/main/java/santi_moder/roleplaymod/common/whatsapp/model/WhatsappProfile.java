@@ -2,9 +2,18 @@ package santi_moder.roleplaymod.common.whatsapp.model;
 
 import net.minecraft.nbt.CompoundTag;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public final class WhatsappProfile {
 
-    public static final String DEFAULT_PHOTO = "default";
+    public static final String DEFAULT_PHOTO = "default_1";
+
+    public static final String[] DEFAULT_PHOTOS = {
+            "default_1",
+            "default_2",
+            "default_3",
+            "default_4"
+    };
 
     private String photoId;
     private String about;
@@ -12,7 +21,7 @@ public final class WhatsappProfile {
     private String phoneNumber;
 
     public WhatsappProfile(String photoId, String about, String displayName, String phoneNumber) {
-        this.photoId = isBlank(photoId) ? DEFAULT_PHOTO : photoId;
+        this.photoId = normalizePhotoId(photoId);
         this.about = safe(about);
         this.displayName = safe(displayName);
         this.phoneNumber = safe(phoneNumber);
@@ -20,11 +29,36 @@ public final class WhatsappProfile {
 
     public static WhatsappProfile createDefault(String displayName, String phoneNumber) {
         return new WhatsappProfile(
-                DEFAULT_PHOTO,
+                randomDefaultPhotoId(),
                 "",
                 safe(displayName),
                 safe(phoneNumber)
         );
+    }
+
+    public static String randomDefaultPhotoId() {
+        return DEFAULT_PHOTOS[ThreadLocalRandom.current().nextInt(DEFAULT_PHOTOS.length)];
+    }
+
+    public static boolean isDefaultPhoto(String photoId) {
+        if (photoId == null || photoId.isBlank()) {
+            return true;
+        }
+
+        for (String defaultPhoto : DEFAULT_PHOTOS) {
+            if (defaultPhoto.equals(photoId)) {
+                return true;
+            }
+        }
+
+        return "default".equals(photoId);
+    }
+
+    private static String normalizePhotoId(String photoId) {
+        if (photoId == null || photoId.isBlank() || "default".equals(photoId)) {
+            return randomDefaultPhotoId();
+        }
+        return photoId;
     }
 
     public static WhatsappProfile load(CompoundTag tag) {
@@ -44,16 +78,12 @@ public final class WhatsappProfile {
         return value == null ? "" : value;
     }
 
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
-    }
-
     public String photoId() {
         return photoId;
     }
 
     public void setPhotoId(String photoId) {
-        this.photoId = isBlank(photoId) ? DEFAULT_PHOTO : photoId;
+        this.photoId = normalizePhotoId(photoId);
     }
 
     public String about() {

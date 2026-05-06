@@ -2,7 +2,9 @@ package santi_moder.roleplaymod.client.phone.ui.render;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
+import santi_moder.roleplaymod.common.phone.PhoneAppId;
 import santi_moder.roleplaymod.common.phone.PhoneData;
 
 import java.time.LocalTime;
@@ -31,6 +33,7 @@ public final class PhoneUnlockedHudRenderer {
         int innerRight = phoneX + phoneWidth - STATUS_RIGHT_PADDING;
 
         ItemStack phoneStack = screen.getPhoneStack();
+        int statusColor = getStatusColor(screen);
 
         String timeText = LocalTime.now().format(TIME_FORMATTER);
 
@@ -39,7 +42,7 @@ public final class PhoneUnlockedHudRenderer {
                 timeText,
                 phoneX + STATUS_LEFT_PADDING,
                 phoneY + STATUS_TOP_PADDING,
-                COLOR_WHITE,
+                statusColor,
                 false
         );
 
@@ -55,17 +58,25 @@ public final class PhoneUnlockedHudRenderer {
                     networkText,
                     networkX,
                     phoneY + STATUS_TOP_PADDING,
-                    COLOR_WHITE,
+                    statusColor,
                     false
             );
         }
 
-        drawBattery(guiGraphics, batteryX, phoneY + STATUS_TOP_PADDING, BATTERY_WIDTH, BATTERY_HEIGHT);
+        drawBattery(guiGraphics, batteryX, phoneY + STATUS_TOP_PADDING, BATTERY_WIDTH, BATTERY_HEIGHT, statusColor);
     }
 
-    private static void drawBattery(GuiGraphics guiGraphics, int x, int y, int width, int height) {
-        int color = COLOR_WHITE;
+    private static int getStatusColor(PhoneScreen screen) {
+        if (screen.getCurrentAppId() == PhoneAppId.HOME) {
+            return 0xFFFFFFFF;
+        }
 
+        return PhoneThemeColors.isDark(screen.getPhoneStack())
+                ? 0xFFFFFFFF
+                : 0xFF000000;
+    }
+
+    private static void drawBattery(GuiGraphics guiGraphics, int x, int y, int width, int height, int color) {
         guiGraphics.fill(x, y, x + width, y + 1, color);
         guiGraphics.fill(x, y + height - 1, x + width, y + height, color);
         guiGraphics.fill(x, y, x + 1, y + height, color);

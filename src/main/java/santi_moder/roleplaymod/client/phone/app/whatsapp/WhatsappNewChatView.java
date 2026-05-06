@@ -3,6 +3,7 @@ package santi_moder.roleplaymod.client.phone.app.whatsapp;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
 import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
@@ -24,8 +25,6 @@ public final class WhatsappNewChatView {
     private static final int SCROLL_STEP = 12;
 
     private static final int AVATAR_SIZE = 16;
-    private static final int COLOR_AVATAR = 0xFF25D366;
-    private static final int COLOR_AVATAR_TEXT = 0xFF081C15;
 
     private int scrollOffset = 0;
 
@@ -40,8 +39,9 @@ public final class WhatsappNewChatView {
 
         PhoneUi.drawBackButton(screen, guiGraphics, mouseX, mouseY);
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 "Nuevo chat",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
@@ -174,13 +174,12 @@ public final class WhatsappNewChatView {
         guiGraphics.fill(x, y, x + w, y + ROW_HEIGHT, hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack()));
         guiGraphics.fill(x, y + ROW_HEIGHT - 1, x + w, y + ROW_HEIGHT, PhoneThemeColors.divider(screen.getPhoneStack()));
 
-        guiGraphics.fill(x + 4, y + 1, x + 4 + AVATAR_SIZE, y + 1 + AVATAR_SIZE, COLOR_AVATAR);
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
-                contact.getInitials(),
-                x + 4 + AVATAR_SIZE / 2,
-                y + 5,
-                COLOR_AVATAR_TEXT
+        WhatsappTextureResolver.drawProfilePhoto(
+                guiGraphics,
+                contact.photoId(),
+                x + 4,
+                y + 1,
+                AVATAR_SIZE
         );
 
         guiGraphics.drawString(screen.getPhoneFont(), contact.displayName(), x + 24, y + 5, PhoneThemeColors.text(screen.getPhoneStack()), false);

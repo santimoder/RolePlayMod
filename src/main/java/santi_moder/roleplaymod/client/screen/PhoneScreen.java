@@ -12,7 +12,9 @@ import santi_moder.roleplaymod.client.phone.animation.*;
 import santi_moder.roleplaymod.client.phone.app.AbstractPhoneApp;
 import santi_moder.roleplaymod.client.phone.navigation.PhoneRecentAppsManager;
 import santi_moder.roleplaymod.client.phone.overlay.PhoneAppSwitcherOverlay;
+import santi_moder.roleplaymod.client.phone.overlay.PhoneNotificationOverlay;
 import santi_moder.roleplaymod.client.phone.registry.PhoneAppRegistry;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.layout.PhoneHomeIconLayoutResolver;
 import santi_moder.roleplaymod.client.phone.ui.render.PhoneLockedHudRenderer;
 import santi_moder.roleplaymod.client.phone.ui.render.PhoneUnlockedHudRenderer;
@@ -64,6 +66,7 @@ public class PhoneScreen extends Screen {
     private final PhoneAnimator animator;
     private final PhoneRecentAppsManager recentAppsManager;
     private final PhoneAppSwitcherOverlay appSwitcherOverlay;
+    private final PhoneNotificationOverlay notificationOverlay;
 
     private PhoneAppId currentApp = PhoneAppId.HOME;
     private PhoneAppId previousApp = PhoneAppId.HOME;
@@ -88,6 +91,7 @@ public class PhoneScreen extends Screen {
         this.animator = new PhoneAnimator();
         this.recentAppsManager = new PhoneRecentAppsManager();
         this.appSwitcherOverlay = new PhoneAppSwitcherOverlay();
+        this.notificationOverlay = new PhoneNotificationOverlay();
     }
 
     @Override
@@ -352,6 +356,7 @@ public class PhoneScreen extends Screen {
         }
 
         getCurrentAppInstance().tick(this, getPhoneStack());
+        notificationOverlay.tick();
     }
 
     private boolean isPhoneStillValid() {
@@ -409,14 +414,9 @@ public class PhoneScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         renderPhoneFrame(guiGraphics);
+
         if (currentApp == PhoneAppId.LOCK_SCREEN || currentApp == PhoneAppId.HOME) {
             PhoneWallpaperRenderer.render(this, guiGraphics, getPhoneStack());
-        }
-
-        if (currentApp == PhoneAppId.LOCK_SCREEN) {
-            PhoneLockedHudRenderer.render(this, guiGraphics);
-        } else {
-            PhoneUnlockedHudRenderer.render(this, guiGraphics);
         }
 
         PhoneTransition transition = animator.getActiveTransition();
@@ -429,8 +429,15 @@ public class PhoneScreen extends Screen {
             getCurrentAppInstance().render(this, guiGraphics, mouseX, mouseY, partialTick);
         }
 
+        if (currentApp == PhoneAppId.LOCK_SCREEN) {
+            PhoneLockedHudRenderer.render(this, guiGraphics);
+        } else {
+            PhoneUnlockedHudRenderer.render(this, guiGraphics);
+        }
+
         renderHomeIndicator(guiGraphics, mouseX, mouseY);
         renderFrontCamera(guiGraphics);
+        notificationOverlay.render(this, guiGraphics);
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }
@@ -514,7 +521,22 @@ public class PhoneScreen extends Screen {
                 HOME_INDICATOR_HITBOX_HEIGHT
         );
 
-        int color = hover || gestureActive ? HOME_INDICATOR_HOVER_COLOR : HOME_INDICATOR_COLOR;
+        int baseColor;
+
+        if (currentApp == PhoneAppId.HOME || currentApp == PhoneAppId.LOCK_SCREEN) {
+            baseColor = HOME_INDICATOR_COLOR;
+        } else {
+            baseColor = PhoneThemeColors.isDark(getPhoneStack())
+                    ? 0xDDFFFFFF
+                    : 0xDD000000;
+        }
+
+        int color = hover || gestureActive
+                ? (PhoneThemeColors.isDark(getPhoneStack()) || currentApp == PhoneAppId.HOME || currentApp == PhoneAppId.LOCK_SCREEN
+                ? 0xFFFFFFFF
+                : 0xFF000000)
+                : baseColor;
+
         guiGraphics.fill(x, y, x + HOME_INDICATOR_WIDTH, y + HOME_INDICATOR_HEIGHT, color);
     }
 
@@ -742,6 +764,10 @@ public class PhoneScreen extends Screen {
 
     public boolean isInside(double mouseX, double mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    public PhoneNotificationOverlay getNotificationOverlay() {
+        return notificationOverlay;
     }
 
     public int getPhoneX() {

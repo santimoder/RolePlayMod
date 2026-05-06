@@ -42,8 +42,9 @@ public final class PhoneUi {
     }
 
     public static void drawHeaderTitle(PhoneScreen screen, GuiGraphics guiGraphics, String title) {
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        drawCenteredText(
+                screen,
+                guiGraphics,
                 title,
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + HEADER_TITLE_Y,
@@ -154,8 +155,9 @@ public final class PhoneUi {
                 hover ? PhoneThemeColors.cardHover(screen.getPhoneStack()) : PhoneThemeColors.card(screen.getPhoneStack())
         );
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        drawCenteredText(
+                screen,
+                guiGraphics,
                 label,
                 x + w / 2,
                 y + 4,
@@ -176,7 +178,7 @@ public final class PhoneUi {
                     ? PhoneThemeColors.text(screen.getPhoneStack())
                     : PhoneThemeColors.subtext(screen.getPhoneStack());
 
-            guiGraphics.drawCenteredString(screen.getPhoneFont(), lines[i], screen.getPhoneCenterX(), y, color);
+            drawCenteredText(screen, guiGraphics, lines[i], screen.getPhoneCenterX(), y, color);
             y += lineGap;
         }
     }
@@ -197,4 +199,25 @@ public final class PhoneUi {
 
         return builder.toString();
     }
+
+    public static void drawCenteredText(
+            PhoneScreen screen,
+            GuiGraphics guiGraphics,
+            String text,
+            int centerX,
+            int y,
+            int color
+    ) {
+        int x = centerX - screen.getPhoneFont().width(text) / 2;
+
+        guiGraphics.drawString(
+                screen.getPhoneFont(),
+                text,
+                x,
+                y,
+                color,
+                false
+        );
+    }
+
 }

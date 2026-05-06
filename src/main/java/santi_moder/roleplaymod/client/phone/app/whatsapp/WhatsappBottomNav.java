@@ -1,6 +1,7 @@
 package santi_moder.roleplaymod.client.phone.app.whatsapp;
 
 import net.minecraft.client.gui.GuiGraphics;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.screen.PhoneScreen;
 
 public final class WhatsappBottomNav {
@@ -13,12 +14,6 @@ public final class WhatsappBottomNav {
     private static final int MIN_TAB_HORIZONTAL_PADDING = 3;
     private static final int TAB_GAP = 3;
 
-    private static final int COLOR_BAR = 0xDD111111;
-    private static final int COLOR_ACTIVE = 0xFF25D366;
-    private static final int COLOR_TEXT = 0xFFFFFFFF;
-    private static final int COLOR_INACTIVE = 0xFFB8B8B8;
-    private static final int COLOR_HOVER = 0x2233FF99;
-
     private static final float DEFAULT_LABEL_SCALE = 0.70F;
     private static final float MIN_LABEL_SCALE = 0.58F;
 
@@ -28,7 +23,7 @@ public final class WhatsappBottomNav {
         int barW = screen.getPhoneWidth() - SIDE_PADDING * 2;
         int barH = BAR_HEIGHT;
 
-        guiGraphics.fill(barX, barY, barX + barW, barY + barH, COLOR_BAR);
+        guiGraphics.fill(barX, barY, barX + barW, barY + barH, PhoneThemeColors.sheet(screen.getPhoneStack()));
 
         TabLayoutResult result = buildLayouts(screen, barX, barY, barW, barH);
 
@@ -42,7 +37,7 @@ public final class WhatsappBottomNav {
                         layout.y(),
                         layout.x() + layout.width(),
                         layout.y() + layout.height(),
-                        COLOR_HOVER
+                        PhoneThemeColors.cardHover(screen.getPhoneStack())
                 );
             }
 
@@ -52,7 +47,7 @@ public final class WhatsappBottomNav {
                         layout.y() + layout.height() - 3,
                         layout.x() + layout.width() - 2,
                         layout.y() + layout.height() - 1,
-                        COLOR_ACTIVE
+                        PhoneThemeColors.success(screen.getPhoneStack())
                 );
             }
 
@@ -62,7 +57,7 @@ public final class WhatsappBottomNav {
                     layout.tab().getLabel(),
                     layout.x() + layout.width() / 2,
                     layout.y() + 6,
-                    active ? COLOR_TEXT : COLOR_INACTIVE,
+                    active ? PhoneThemeColors.text(screen.getPhoneStack()) : PhoneThemeColors.subtext(screen.getPhoneStack()),
                     result.labelScale()
             );
         }

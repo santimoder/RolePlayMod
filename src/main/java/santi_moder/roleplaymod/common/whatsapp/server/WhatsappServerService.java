@@ -273,6 +273,61 @@ public final class WhatsappServerService {
         );
     }
 
+    public static void handleUpdateProfile(ServerPlayer player, String displayName, String about) {
+        if (player == null) {
+            return;
+        }
+
+        String cleanName = sanitizeProfileText(displayName, 30);
+        String cleanAbout = sanitizeProfileText(about, 20);
+
+        ServerLevel level = player.serverLevel();
+        WhatsappServerData data = WhatsappServerData.get(level);
+
+        WhatsappAccount account = getActiveAccount(player, data);
+        if (account == null) {
+            return;
+        }
+
+        WhatsappProfile profile = data.getOrCreateProfile(account.accountId(), account.displayName());
+
+        profile.setDisplayName(cleanName.isBlank() ? player.getGameProfile().getName() : cleanName);
+        profile.setAbout(cleanAbout);
+
+        account.setDisplayName(profile.displayName());
+
+        data.setDirty();
+
+        ModNetwork.sendWhatsappToClient(
+                new WhatsappProfileUpdatedS2CPacket(
+                        new WhatsappSyncProfile(
+                                profile.photoId(),
+                                profile.about(),
+                                profile.displayName(),
+                                profile.phoneNumber()
+                        )
+                ),
+                PacketDistributor.PLAYER.with(() -> player)
+        );
+    }
+
+    private static String sanitizeProfileText(String value, int maxLength) {
+        if (value == null) {
+            return "";
+        }
+
+        String clean = value
+                .replace("\n", " ")
+                .replace("\r", " ")
+                .trim();
+
+        if (clean.length() > maxLength) {
+            clean = clean.substring(0, maxLength);
+        }
+
+        return clean;
+    }
+
     public static void handleMarkChatRead(ServerPlayer readerPlayer, String chatId) {
         if (readerPlayer == null || chatId == null || chatId.isBlank()) {
             return;

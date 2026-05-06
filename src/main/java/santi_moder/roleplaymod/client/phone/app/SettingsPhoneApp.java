@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
+import santi_moder.roleplaymod.client.phone.ui.PhoneThemeColors;
 import santi_moder.roleplaymod.client.phone.ui.PhoneUi;
 import santi_moder.roleplaymod.client.phone.ui.component.PhoneBirthdateKeyboard;
 import santi_moder.roleplaymod.client.phone.ui.component.PhoneNumericKeypad;
@@ -35,10 +36,11 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
     private static final int WALLPAPER_OPTION_W = 34;
     private static final int WALLPAPER_OPTION_H = 56;
     private static final int WALLPAPER_OPTION_GAP = 8;
+    private static final int WALLPAPER_SCROLL_STEP = 12;
+    private int wallpaperScrollOffset = 0;
 
-    private static final int WALLPAPER_PANEL_COLOR = 0x66111111;
-    private static final int WALLPAPER_SELECTED_COLOR = 0x99FFFFFF;
-    private static final int WALLPAPER_DISABLED_COLOR = 0x55333333;
+    private static final int WALLPAPER_SELECTED_LIGHT = 0x99000000;
+    private static final int WALLPAPER_SELECTED_DARK = 0x99FFFFFF;
 
     private SettingsCategory currentCategory = SettingsCategory.HOME;
 
@@ -71,10 +73,19 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         editorMode = EditorMode.NONE;
         editorBuffer = "";
         editorErrorTicks = 0;
+        wallpaperScrollOffset = 0;
     }
 
     @Override
     public void render(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        guiGraphics.fill(
+                screen.getPhoneX() + 4,
+                screen.getPhoneY() + 4,
+                screen.getPhoneX() + screen.getPhoneWidth() - 4,
+                screen.getPhoneY() + screen.getPhoneHeight() - 4,
+                PhoneThemeColors.appBackground(screen.getPhoneStack())
+        );
+
         PhoneUi.drawHeaderTitle(screen, guiGraphics, getCurrentTitle());
 
         if (canGoBack()) {
@@ -129,20 +140,15 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         PhoneUi.drawField(screen, guiGraphics, "Apellido:", PhoneUi.valueOrEmpty(PhoneData.getProfileSurname(stack)), left, y + 34);
         PhoneUi.drawField(screen, guiGraphics, "Nacimiento:", PhoneUi.valueOrEmpty(PhoneData.getProfileBirthdate(stack)), left, y + 68);
         PhoneUi.drawField(screen, guiGraphics, "Foto:", PhoneData.getProfilePhoto(stack), left, y + 102);
-
-        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 132, "Editar nombre");
-        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 154, "Editar apellido");
-        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 176, "Editar fecha");
-        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 198, "Cambiar foto");
     }
 
     private void renderWallpaper(PhoneScreen screen, GuiGraphics guiGraphics, int mouseX, int mouseY, ItemStack stack) {
         PhoneUi.drawPanel(screen, guiGraphics);
 
         int left = screen.getPhoneX() + 10;
-        int top = screen.getPhoneY() + 48;
+        int top = screen.getPhoneY() + 48 - wallpaperScrollOffset;
 
-        guiGraphics.drawString(screen.getPhoneFont(), "Vista previa", left, top, PhoneUi.COLOR_TEXT, false);
+        guiGraphics.drawString(screen.getPhoneFont(), "Vista previa", left, top, PhoneThemeColors.text(screen.getPhoneStack()), false);
 
         int previewY = top + 10;
         int previewGap = 14;
@@ -150,17 +156,17 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         int previewStartX = screen.getPhoneCenterX() - previewTotalWidth / 2;
 
         int lockX = previewStartX;
-        guiGraphics.fill(lockX - 2, previewY - 2, lockX + WALLPAPER_PREVIEW_W + 2, previewY + WALLPAPER_PREVIEW_H + 2, WALLPAPER_PANEL_COLOR);
+        guiGraphics.fill(lockX - 2, previewY - 2, lockX + WALLPAPER_PREVIEW_W + 2, previewY + WALLPAPER_PREVIEW_H + 2, PhoneThemeColors.divider(screen.getPhoneStack()));
         PhoneWallpaperRenderer.renderPreviewLock(guiGraphics, stack, lockX, previewY, WALLPAPER_PREVIEW_W, WALLPAPER_PREVIEW_H);
-        guiGraphics.drawCenteredString(screen.getPhoneFont(), "Bloqueo", lockX + WALLPAPER_PREVIEW_W / 2, previewY + WALLPAPER_PREVIEW_H + 6, PhoneUi.COLOR_SUBTEXT);
+        guiGraphics.drawCenteredString(screen.getPhoneFont(), "Bloqueo", lockX + WALLPAPER_PREVIEW_W / 2, previewY + WALLPAPER_PREVIEW_H + 6, PhoneThemeColors.subtext(screen.getPhoneStack()));
 
         int homeX = previewStartX + WALLPAPER_PREVIEW_W + previewGap;
-        guiGraphics.fill(homeX - 2, previewY - 2, homeX + WALLPAPER_PREVIEW_W + 2, previewY + WALLPAPER_PREVIEW_H + 2, WALLPAPER_PANEL_COLOR);
+        guiGraphics.fill(homeX - 2, previewY - 2, homeX + WALLPAPER_PREVIEW_W + 2, previewY + WALLPAPER_PREVIEW_H + 2, PhoneThemeColors.divider(screen.getPhoneStack()));
         PhoneWallpaperRenderer.renderPreviewHome(guiGraphics, stack, homeX, previewY, WALLPAPER_PREVIEW_W, WALLPAPER_PREVIEW_H);
-        guiGraphics.drawCenteredString(screen.getPhoneFont(), "Inicio", homeX + WALLPAPER_PREVIEW_W / 2, previewY + WALLPAPER_PREVIEW_H + 6, PhoneUi.COLOR_SUBTEXT);
+        guiGraphics.drawCenteredString(screen.getPhoneFont(), "Inicio", homeX + WALLPAPER_PREVIEW_W / 2, previewY + WALLPAPER_PREVIEW_H + 6, PhoneThemeColors.subtext(screen.getPhoneStack()));
 
         int optionsY = previewY + WALLPAPER_PREVIEW_H + 22;
-        guiGraphics.drawString(screen.getPhoneFont(), "Fondos", left, optionsY, PhoneUi.COLOR_TEXT, false);
+        guiGraphics.drawString(screen.getPhoneFont(), "Fondos", left, optionsY, PhoneThemeColors.text(screen.getPhoneStack()), false);
 
         int optionStartY = optionsY + 10;
         int optionCount = PhoneWallpaperCatalog.selectable().size();
@@ -194,7 +200,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
             boolean hover = screen.isInside(mouseX, mouseY, x, y, WALLPAPER_OPTION_W, WALLPAPER_OPTION_H);
             boolean selected = option.id().equals(current);
 
-            int borderColor = selected ? WALLPAPER_SELECTED_COLOR : (hover ? 0x88FFFFFF : WALLPAPER_PANEL_COLOR);
+            int borderColor = selected ? PhoneThemeColors.isDark(screen.getPhoneStack()) ? WALLPAPER_SELECTED_DARK : WALLPAPER_SELECTED_LIGHT : (hover ? 0x88FFFFFF : PhoneThemeColors.divider(screen.getPhoneStack()));
             guiGraphics.fill(x - 2, y - 2, x + WALLPAPER_OPTION_W + 2, y + WALLPAPER_OPTION_H + 2, borderColor);
 
             PhoneWallpaperRenderer.renderPreviewWallpaperOnly(
@@ -211,7 +217,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                     option.displayName(),
                     x + WALLPAPER_OPTION_W / 2,
                     y + WALLPAPER_OPTION_H - 8,
-                    PhoneUi.COLOR_SUBTEXT
+                    PhoneThemeColors.subtext(screen.getPhoneStack())
             );
         }
     }
@@ -224,18 +230,18 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
             int x,
             int y
     ) {
-        int w = screen.getPhoneWidth() - 20;
-        int h = 22;
+        int w = screen.getPhoneWidth() - 28;
+        int h = 18;
 
         boolean hover = screen.isInside(mouseX, mouseY, x, y, w, h);
 
-        guiGraphics.fill(x, y, x + w, y + h, hover ? 0x66444444 : WALLPAPER_DISABLED_COLOR);
+        guiGraphics.fill(x, y, x + w, y + h, hover ? 0x66444444 : PhoneThemeColors.disabledInput(screen.getPhoneStack()));
 
         guiGraphics.drawString(
                 screen.getPhoneFont(),
                 "Agrega tu fondo",
                 x + 8,
-                y + 7,
+                y + 5,
                 0xFFB8B8B8,
                 false
         );
@@ -247,13 +253,13 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         int left = screen.getPhoneX() + PhoneUi.CONTENT_LEFT_X;
         int y = screen.getPhoneY() + PhoneUi.CONTENT_TOP_Y;
 
-        PhoneUi.drawField(screen, guiGraphics, "Tema:", PhoneData.getThemeMode(stack), left, y);
-        PhoneUi.drawField(screen, guiGraphics, "Tamano de letra:", PhoneData.getTextSize(stack), left, y + 38);
-        PhoneUi.drawField(screen, guiGraphics, "Tamano de iconos:", PhoneData.getIconSize(stack), left, y + 76);
+        String themeLabel = PhoneData.THEME_DARK.equals(PhoneData.getThemeMode(stack))
+                ? "Cambiar a claro"
+                : "Cambiar a oscuro";
 
-        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 112, "Cambiar tema");
-        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 134, "Tamano letra");
-        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 156, "Tamano iconos");
+        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y, themeLabel);
+        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 26, "Cambiar tamaño de letra");
+        PhoneUi.drawActionButton(screen, guiGraphics, mouseX, mouseY, left, y + 52, "Cambiar tamaño de iconos");
     }
 
     private void renderNotifications(PhoneScreen screen, GuiGraphics guiGraphics) {
@@ -318,7 +324,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                 getSecurityTitle(),
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + 34,
-                PhoneUi.COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
 
         guiGraphics.drawCenteredString(
@@ -326,7 +332,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                 getSecuritySubtitle(stack),
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + 48,
-                PhoneUi.COLOR_SUBTEXT
+                PhoneThemeColors.subtext(screen.getPhoneStack())
         );
 
         guiGraphics.drawCenteredString(
@@ -334,7 +340,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                 PhoneUi.buildDots(enteredCode, PIN_LENGTH),
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + 68,
-                PhoneUi.COLOR_TEXT
+                PhoneThemeColors.text(screen.getPhoneStack())
         );
 
         if (securityErrorTicks > 0) {
@@ -359,7 +365,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
                 getEditorSubtitle(),
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + 52,
-                PhoneUi.COLOR_SUBTEXT
+                PhoneThemeColors.subtext(screen.getPhoneStack())
         );
 
         PhoneUi.drawTextInput(
@@ -482,7 +488,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
 
     private boolean handleWallpaperClick(PhoneScreen screen, double mouseX, double mouseY, ItemStack stack) {
         int startX = screen.getPhoneX() + 10;
-        int startY = screen.getPhoneY() + 48 + 10 + WALLPAPER_PREVIEW_H + 22 + 10;
+        int startY = screen.getPhoneY() + 48 - wallpaperScrollOffset + 10 + WALLPAPER_PREVIEW_H + 22 + 10;
 
         List<PhoneWallpaperCatalog.WallpaperOption> options = PhoneWallpaperCatalog.selectable();
 
@@ -538,23 +544,25 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
     private boolean handleProfileClick(PhoneScreen screen, double mouseX, double mouseY, ItemStack stack) {
         int left = screen.getPhoneX() + PhoneUi.CONTENT_LEFT_X;
         int y = screen.getPhoneY() + PhoneUi.CONTENT_TOP_Y;
+        int w = screen.getPhoneWidth() - 24;
+        int h = 28;
 
-        if (screen.isInside(mouseX, mouseY, left, y + 132, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
+        if (screen.isInside(mouseX, mouseY, left, y, w, h)) {
             openEditor(EditorMode.PROFILE_NAME, PhoneData.getProfileName(stack));
             return true;
         }
 
-        if (screen.isInside(mouseX, mouseY, left, y + 154, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
+        if (screen.isInside(mouseX, mouseY, left, y + 34, w, h)) {
             openEditor(EditorMode.PROFILE_SURNAME, PhoneData.getProfileSurname(stack));
             return true;
         }
 
-        if (screen.isInside(mouseX, mouseY, left, y + 176, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
+        if (screen.isInside(mouseX, mouseY, left, y + 68, w, h)) {
             openEditor(EditorMode.PROFILE_BIRTHDATE, PhoneData.getProfileBirthdate(stack));
             return true;
         }
 
-        if (screen.isInside(mouseX, mouseY, left, y + 198, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
+        if (screen.isInside(mouseX, mouseY, left, y + 102, w, h)) {
             PhoneData.cycleProfilePhoto(stack);
             sendPhoneSettingUpdate("cycle_profile_photo", "");
             return true;
@@ -567,19 +575,19 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
         int left = screen.getPhoneX() + PhoneUi.CONTENT_LEFT_X;
         int y = screen.getPhoneY() + PhoneUi.CONTENT_TOP_Y;
 
-        if (screen.isInside(mouseX, mouseY, left, y + 112, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
+        if (screen.isInside(mouseX, mouseY, left, y, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.toggleThemeMode(stack);
             sendPhoneSettingUpdate("toggle_theme", "");
             return true;
         }
 
-        if (screen.isInside(mouseX, mouseY, left, y + 134, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
+        if (screen.isInside(mouseX, mouseY, left, y + 26, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.cycleTextSize(stack);
             sendPhoneSettingUpdate("cycle_text_size", "");
             return true;
         }
 
-        if (screen.isInside(mouseX, mouseY, left, y + 156, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
+        if (screen.isInside(mouseX, mouseY, left, y + 52, PhoneUi.ACTION_BUTTON_W, PhoneUi.ACTION_BUTTON_H)) {
             PhoneData.cycleIconSize(stack);
             sendPhoneSettingUpdate("cycle_icon_size", "");
             return true;
@@ -774,6 +782,23 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
     private void onSecurityFail() {
         enteredCode = "";
         securityErrorTicks = SECURITY_ERROR_TICKS;
+    }
+
+    @Override
+    public boolean mouseScrolled(PhoneScreen screen, double mouseX, double mouseY, double scrollDelta) {
+        if (currentCategory != SettingsCategory.WALLPAPER || isEditorOpen()) {
+            return false;
+        }
+
+        int maxScroll = 40;
+
+        if (scrollDelta < 0.0D) {
+            wallpaperScrollOffset = Math.min(maxScroll, wallpaperScrollOffset + WALLPAPER_SCROLL_STEP);
+        } else {
+            wallpaperScrollOffset = Math.max(0, wallpaperScrollOffset - WALLPAPER_SCROLL_STEP);
+        }
+
+        return true;
     }
 
     private boolean isSecurityPadOpen() {
@@ -977,6 +1002,7 @@ public class SettingsPhoneApp extends AbstractPhoneApp {
 
         if (currentCategory == SettingsCategory.SECURITY && isSecurityPadOpen()) {
             if (PhoneData.hasPassword(screen.getPhoneStack()) && securityState == SecurityFlowState.VERIFY_TO_ENTER) {
+                currentCategory = SettingsCategory.HOME;
                 currentCategory = SettingsCategory.HOME;
                 beginSecurityState(SecurityFlowState.NONE);
                 return;

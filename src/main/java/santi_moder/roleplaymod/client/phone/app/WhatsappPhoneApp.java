@@ -32,6 +32,7 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
     private WhatsappTab activeTab = WhatsappTab.CHATS;
     private String chatsSearchQuery = "";
     private boolean waitingOpenConversationFromServer = false;
+    private boolean receivedInitialChatSync = false;
 
     public WhatsappPhoneApp() {
         super(PhoneAppId.WHATSAPP);
@@ -90,11 +91,54 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
         var pending = WhatsappClientSyncApplier.consumePendingInitialSnapshot();
         if (pending != null) {
             WhatsappClientSyncApplier.applySnapshotToState(state, pending);
+            receivedInitialChatSync = true;
+        }
+
+        var pendingProfile = WhatsappClientSyncApplier.consumePendingProfile();
+        if (pendingProfile != null) {
+            WhatsappClientSyncApplier.applyProfileToState(state, pendingProfile);
         }
 
         var chatPayloads = WhatsappClientSyncApplier.consumePendingChatPayloads();
         for (var payload : chatPayloads) {
+            WhatsappChat existingChat = state.findChatById(payload.id());
+
+            int oldMessageCount = existingChat != null
+                    ? existingChat.messages().size()
+                    : 0;
+
             WhatsappClientSyncApplier.applyChatPayloadToState(state, payload);
+
+            WhatsappChat updatedChat = state.findChatById(payload.id());
+
+            if (receivedInitialChatSync
+                    && updatedChat != null
+                    && updatedChat.messages().size() > oldMessageCount) {
+
+                santi_moder.roleplaymod.common.whatsapp.model.WhatsappMessage latest = getLatestMessage(updatedChat);
+
+                if (latest != null && !latest.sentByMe()) {
+
+                    boolean alreadyInsideChat =
+                            currentAppIsConversationOpen(updatedChat.id());
+
+                    if (!alreadyInsideChat) {
+
+                        WhatsappContact contact =
+                                state.findContactById(updatedChat.contactId());
+
+                        screen.getNotificationOverlay().show(
+                                contact != null
+                                        ? contact.displayName()
+                                        : "WhatsApp",
+                                latest.text(),
+                                contact != null
+                                        ? contact.photoId()
+                                        : "default_1"
+                        );
+                    }
+                }
+            }
 
             if (state.isConversationOpen()
                     && state.getSelectedChat() != null
@@ -155,6 +199,21 @@ public class WhatsappPhoneApp extends AbstractPhoneApp {
         }
 
         PhoneWhatsappData.saveState(phoneStack, state);
+    }
+
+    private santi_moder.roleplaymod.common.whatsapp.model.WhatsappMessage getLatestMessage(WhatsappChat chat) {
+        if (chat == null || chat.messages().isEmpty()) {
+            return null;
+        }
+
+        return chat.messages().get(chat.messages().size() - 1);
+    }
+
+    private boolean currentAppIsConversationOpen(String chatId) {
+        return activeTab == WhatsappTab.CHATS
+                && state.getChatScreen() == WhatsappChatScreen.CONVERSATION
+                && state.getSelectedChat() != null
+                && state.getSelectedChat().id().equals(chatId);
     }
 
     private void renderNoSimScreen(PhoneScreen screen, GuiGraphics guiGraphics) {

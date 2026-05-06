@@ -96,7 +96,7 @@ public class HomePhoneApp extends AbstractPhoneApp {
         int iconSize = resolveIconSize(stack);
 
         mainGrid = new PhoneIconGrid(
-                screen.getPhoneX() + GRID_LEFT_OFFSET,
+                getGridStartX(screen, iconSize),
                 screen.getPhoneY() + GRID_TOP_OFFSET,
                 GRID_COLUMNS,
                 iconSize,
@@ -112,22 +112,33 @@ public class HomePhoneApp extends AbstractPhoneApp {
         }
         mainGrid.setEntries(mainEntries);
 
-        dockGrid = new PhoneIconGrid(
-                screen.getPhoneX() + GRID_LEFT_OFFSET + DOCK_ICON_OFFSET_X,
-                screen.getPhoneY() + screen.getPhoneHeight() - 42,
-                DOCK_APPS.length,
-                iconSize,
-                DOCK_ICON_GAP,
-                0
-        );
-
         List<PhoneIconGrid.IconEntry> dockEntries = new ArrayList<>();
         for (GridAppSpec app : DOCK_APPS) {
             if (PhoneData.isAppInstalled(stack, app.appId())) {
                 dockEntries.add(new PhoneIconGrid.IconEntry(app.appId(), app.label()));
             }
         }
+
+        dockGrid = new PhoneIconGrid(
+                getDockStartX(screen, iconSize, dockEntries.size()),
+                screen.getPhoneY() + screen.getPhoneHeight() - 42,
+                Math.max(1, dockEntries.size()),
+                iconSize,
+                DOCK_ICON_GAP,
+                0
+        );
+
         dockGrid.setEntries(dockEntries);
+    }
+
+    private int getGridStartX(PhoneScreen screen, int iconSize) {
+        int totalWidth = GRID_COLUMNS * iconSize + (GRID_COLUMNS - 1) * GRID_SPACING_X;
+        return screen.getPhoneX() + (screen.getPhoneWidth() - totalWidth) / 2;
+    }
+
+    private int getDockStartX(PhoneScreen screen, int iconSize, int dockCount) {
+        int totalWidth = dockCount * iconSize + Math.max(0, dockCount - 1) * DOCK_ICON_GAP;
+        return screen.getPhoneX() + (screen.getPhoneWidth() - totalWidth) / 2;
     }
 
     private void renderDockBackground(PhoneScreen screen, GuiGraphics guiGraphics) {

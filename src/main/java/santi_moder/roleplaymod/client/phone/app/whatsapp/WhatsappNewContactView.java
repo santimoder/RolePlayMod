@@ -28,11 +28,6 @@ public final class WhatsappNewContactView {
     private static final int SAVE_BUTTON_W = 90;
     private static final int SAVE_BUTTON_H = 16;
 
-    private static final int COLOR_BUTTON = 0xFF25D366;
-    private static final int COLOR_BUTTON_HOVER = 0xFF53E07E;
-    private static final int COLOR_BUTTON_DISABLED = 0xFF2C4F3A;
-    private static final int COLOR_BUTTON_TEXT = 0xFF081C15;
-
     private static final int MAX_NAME = 20;
     private static final int MAX_SURNAME = 24;
     private static final int MAX_PHONE = 12;
@@ -50,8 +45,9 @@ public final class WhatsappNewContactView {
 
         PhoneUi.drawBackButton(screen, guiGraphics, mouseX, mouseY);
 
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 "Nuevo contacto",
                 screen.getPhoneCenterX(),
                 screen.getPhoneY() + TITLE_Y,
@@ -306,16 +302,18 @@ public final class WhatsappNewContactView {
         boolean hover = screen.isInside(mouseX, mouseY, x, y, SAVE_BUTTON_W, SAVE_BUTTON_H);
 
         int color = enabled
-                ? (hover ? COLOR_BUTTON_HOVER : COLOR_BUTTON)
-                : COLOR_BUTTON_DISABLED;
+                ? (hover ? PhoneThemeColors.successHover(screen.getPhoneStack()) : PhoneThemeColors.success(screen.getPhoneStack()))
+                : PhoneThemeColors.disabledInput(screen.getPhoneStack());
 
         guiGraphics.fill(x, y, x + SAVE_BUTTON_W, y + SAVE_BUTTON_H, color);
-        guiGraphics.drawCenteredString(
-                screen.getPhoneFont(),
+
+        PhoneUi.drawCenteredText(
+                screen,
+                guiGraphics,
                 "Guardar",
                 x + SAVE_BUTTON_W / 2,
                 y + 4,
-                COLOR_BUTTON_TEXT
+                enabled ? PhoneThemeColors.onSuccess(screen.getPhoneStack()) : PhoneThemeColors.hint(screen.getPhoneStack())
         );
     }
 
